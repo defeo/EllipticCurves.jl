@@ -1,9 +1,8 @@
 module EllipticCurves
 
 import Nemo
-import Base.show
 
-export a_invariants, b_invariants, c_invariants, discriminant, j_invariant
+export EllipticCurve
 
 ######################################################################
 # Abstract types
@@ -17,12 +16,12 @@ Every elliptic curve inherits from this.
 abstract EllipticCurve{T<:Nemo.RingElem}
 
 """
-Get the a-invariants of an elliptic curve.
+Abstract classes for elliptic curves in Weierstrass form.
 
-Every instance of EllipticCurve must implement this method.
+Every elliptic curve in Weierstrass form inherits from this.
 """
-function a_invariants
-end
+abstract AbstractWeierstrass{T<:Nemo.RingElem} <: EllipticCurve{T}
+
 
 """
 Abstract classes for elliptic curve points.
@@ -31,43 +30,80 @@ Every elliptic curve point inherits from this.
 """
 abstract EllipticPoint{T<:Nemo.RingElem}
 
+"""
+Abstract class for maps.
+
+Every map between elliptic curves inherits from this.
+"""
+abstract Map{T<:Nemo.RingElem}
+
+"""
+Abstract class for isogenies.
+
+Every isogeny between elliptic curves inherits from this.
+"""
+abstract Isogeny{T<:Nemo.RingElem} <: Map{T}
+
+
 ######################################################################
-# Generic methods
+# Abstract functions
 ######################################################################
 
-function show{T}(io::IO, E::EllipticCurve{T})
-    a1, a2, a3, a4, a6 = a_invariants(E)
-    print(io, "Elliptic Curve  y² + $a1 xy + $a3 y = x³ + $a2 x² + $a4 x + $a6  over ")
-    show(io, Nemo.parent_type(T))
+"""
+Abstract function to get the base curve of an EllipticPoint.
+
+Every EllipticPoint must implement this method.
+
+Returns an elliptic curve.
+"""
+function BaseCurve{T}(P::EllipticPoint{T})
 end
 
-function b_invariants{T}(E::EllipticCurve{T})
-    a1, a2, a3, a4, a6 = a_invariants(E)
-    return T[a1*a1 + 4*a2,
-             a1*a3 + 2*a4,
-             a3^2 + 4*a6,
-             a1^2 * a6 + 4*a2*a6 - a1*a3*a4 + a2*a3^2 - a4^2]
+"""
+Abstract function to get the domain curve of a Map.
+
+Every map must implement this method.
+
+Returns an elliptic curve.
+"""
+function Domain{T}(phi::Map{T})
 end
 
-function c_invariants{T}(E::EllipticCurve{T})
-    b2, b4, b6, b8 = b_invariants(E)
-    return (b2^2 - 24*b4, -b2^3 + 36*b2*b4 - 216*b6)
+"""
+Abstract function to get the image curve of a Map.
+
+Every map must implement this method.
+
+Returns an elliptic curve.
+"""
+function Image{T}(phi::Map{T})
 end
 
-function discriminant{T}(E::EllipticCurve{T})
-    b2, b4, b6, b8 = b_invariants(E)
-    return -b2^2*b8 - 8*b4^3 - 27*b6^2 + 9*b2*b4*b6
+"""
+Abstract function to evaluate maps at points.
+
+Every map between elliptic curves must implement this method with the points of the domain curve.
+
+Returns a point on the image curve, and throws an exception if the curves do not match.
+"""
+function Eval{T}(phi::Map{T}, P::EllipticPoint{T})
 end
 
-function j_invariant{T<:Nemo.FieldElem}(E::EllipticCurve{T})
-    c4, _ = c_invariants(E)
-    disc = discriminant(E)
-    return c4^3 // disc
-end
 
 ######################################################################
 # Weierstrass curves
 ######################################################################
+
 include("weierstrass.jl")
+
+
+
+######################################################################
+# Montgomery curves
+######################################################################
+
+include("montgomery.jl")
+
+
 
 end # module

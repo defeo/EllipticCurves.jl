@@ -122,19 +122,20 @@ function xadd{T,E}(P::MontgomeryPoint{T,E}, Q::MontgomeryPoint{T,E}, Minus::Mont
     return MontgomeryPoint(Xplus, Zplus, P.curve) #valid if Minus is not (0:0) or (1:0)
 end
 
-
+"""
 function xladder{T}(k::Nemo.Integer, P::MontgomeryPoint{T})
-    normalize!(P)
+   normalize!(P)
     x0, x1 = P, xdouble(P)
     for #b running down k's bits, except the highest-weight one
         if b == 0
-            x0, x1 = xdouble(x0), xadd(x0, x1, P)
+           x0, x1 = xdouble(x0), xadd(x0, x1, P)
         else
             x0, x1 = xadd(x0, x1, P), xdouble(x1)
         end
     end
     return x0
 end
+"""
 
 function *{T,E}(k::Nemo.Integer, P::MontgomeryPoint{T,E})
     if isidentity(P)
@@ -144,6 +145,7 @@ function *{T,E}(k::Nemo.Integer, P::MontgomeryPoint{T,E})
             return identity(E)
         else
             return fixedtorsion(E)
+	end
     else
         return xladder(k, P)
     end
@@ -151,7 +153,7 @@ end
 
 
 
-
+end
 
 
 
