@@ -1,8 +1,11 @@
 module WeierstrassCurves
 
+
 import Nemo
 import Base.show
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, EllipticPoint, Map, Isogeny, BaseCurve, Domain, Image, Eval
+import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, EllipticPoint, Map, BaseCurve, Maps.ExplicitMap, Maps.Eval, Maps.Isogeny, ModularPoly.modularpoly
+
+
 
 ######################################################################
 # Basic methods
@@ -10,8 +13,6 @@ import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, EllipticPoint, Map,
 
 """
 Concrete types for elliptic curves in long Weierstrass form over a ring.
-
-Immutable types with 5 fieds : a1, a2, a3, a4, a6.
 """
 immutable WeierstrassCurve{T} <: AbstractWeierstrass{T}
     a1::T
@@ -25,8 +26,6 @@ end
 
 """
 Concrete types for elliptic curves in short Weierstrass form over a ring.
-
-Immutable type with 2 fields : a, b.
 """
 immutable ShortWeierstrassCurve{T} <: AbstractWeierstrass{T}
     a::T
@@ -55,18 +54,6 @@ Shows an explicit equation and the base ring.
 function show{T}(io::IO, E::ShortWeierstrassCurve{T})
     print(io, "Elliptic Curve in short Weierstrass form y² = x³ + $(E.a) x + $(E.b)  over ")
     show(io, Nemo.parent_type(T))
-end
-
-
-
-"""
-Get an elliptic curve in long Weierstrass form from an elliptic curve in short Weierstrass form.
-
-Returns an elliptic curve in short Weierstrass curve with the same equation, and two maps which are the canonical isomorphisms between the curves.
-"""
-
-function ToLongWeierstrass{T}(E::ShortWeierstrassCurve{T})
-
 end
 
 
@@ -174,6 +161,7 @@ function j_invariant{T<:Nemo.FieldElem}(E::ShortWeierstrassCurve{T})
 end
 
 
+
 ######################################################################
 # Basic methods for projective points
 ######################################################################
@@ -197,6 +185,15 @@ Describes a projective point giving its X, Y and Z coordinates.
 function show(io::IO, P::ProjectivePoint)
     print(io, "($(P.X):$(P.Y):$(P.Z))")
 end
+
+"""
+Get the base ring of an elliptic point.
+"""
+function basering{T}(E::EllipticPoint{T})
+    return Nemo.parent_type(T)
+end
+
+
 """
 Decides whether a projective point represents the point at infinity on a Weierstrass curve.
 """
@@ -249,6 +246,14 @@ end
 ######################################################################
 
 """
+Get the point at infinity on an elliptic curve in Weierstrass form.
+"""
+function infinity{T}(E::AbstractWeierstrass{T})
+    R = BaseRing(E)
+    return ProjectivePoint(Nemo.zero(R), Nemo.one(R), Nemo.zero(R), E)
+end
+
+"""
 Get the opposite of a point on an elliptic curve in short Weierstrass form.
 """
 function -{T, E::ShortWeierstrassCurve{T}}(P::ProjectivePoint{T,E})
@@ -267,27 +272,62 @@ function -{T, E::WeierstrassCurve{T}}(P::ProjectivePoint{T,E})
 end
 
 """
-Get the sum of two projective points on the same long Weierstrass curve, assuming they are not equal and not inverse of each other.
+Get the sum of two normalized projective points on the same long Weierstrass curve, assuming they are not equal and not inverse of each other.
 
-This does not assume the base ring is a field.
+This assumes the base ring is a field.
 """
-
-function addgeneric{T, E::WeierstrassCurve{T}}(P::ProjectivePoint{T,E}, Q::ProjectivePoint{T,E})
-    lambda = P.Z * Q.Y - P.Y * Q.Z
-    nu = P.Y * Q.X - P.X * Q.Y
-    denom = P.Z * Q.X - P.X * Q.Z
-    Xplus = lambda^2 + (E.a1) * lambda * denom - (E.a2) * denom^2 - 
-    Yplus =
-    Zplus =
+function addgeneric{T<:Nemo.FieldElem, E::WeierstrassCurve{T}}(P::ProjectivePoint{T,E}, Q::ProjectivePoint{T,E})
+    denom = Q.X - P.X
+    lambda = (Q.Y - P.Y) // denom
+    nu = (P.Y * Q.X - P.X * Q.Y) // denom
+    
+    Xplus = lambda^2 + (E.a1) * lambda - (E.a2) - P.X - Q.X
+    Yplus = -(lambda + (E.a1)) * Xplus - nu - (E.a3)
+    Zplus = Nemo.one(Nemo.parent(P.X))
     return ProjectivePoint(Xplus, Yplus, Zplus, E)
+end
+
+"""
+Get the sum of two normalized projective points on the same long Weierstrass curve, assuming they have equal x-coordinate.
+
+This assumes the base ring is a field.
+"""
+function addequalx{T<:Nemo.FieldElem, E::WeierstrassCurve{T}}(P::ProjectivePoint{T,E}, Q::ProjectivePoint{T,E})
+    denom = P.Y + Q.Y + (E.a1) * Q.X + E.a3
+    if Nemo.iszero(denom)
+	return infinity(E)
+    else
+	lambda = (3 * (P.X)^2 + 2 * E.a2 * P.X + E.a4 - (E.a1) * P.Y) // denom
+	nu = (- (P.X)^3 + (E.a4) * P.X + 2 * E.a6 - (E.a3) * P.Y) // denom
+	Xplus = lambda^2 + (E.a1) * lambda - (E.a2) - P.X - Q.X
+        Yplus = -(lambda + (E.a1)) * Xplus - nu - (E.a3)
+        Zplus = Nemo.one(Nemo.parent(P.X))
+	return ProjectivePoint(Xplus, Yplus, Zplus, E)
+    end
+end
+
+"""
+Get the sum of two projective points on the same long Weierstrass curve.
+
+This assumes the base ring is a field.
+"""
+function +{T<:Nemo.FieldElem, E::WeierstrassCurve{T}}(P::ProjectivePoint{T,E}, Q::ProjectivePoint{T,E})
+    normalize!(P)
+    normalize!(Q)
+    if P.X == Q.X
+	return addequalx(P,Q)
+    else
+	return addgeneric(P,Q)
+    end
 end
 
 ######################################################################
 # Affine points, just for laughs
 ######################################################################
 
-type AffinePoint{T<:Nemo.FieldElem, E<:EllipticCurve} <: EllipticPoint{T}
+type AffinePoint{T<:Nemo.FieldElem, E<:EllipticCurve} <: EllipticPoint{T,E}
     proj::ProjectivePoint{T,E}
+    curve::E
 end
 
 function show(io::IO, P::AffinePoint)
@@ -299,4 +339,166 @@ function show(io::IO, P::AffinePoint)
     end
 end
 
+
+
+
+######################################################################
+# Model changes
+######################################################################
+
+
+"""
+Get an elliptic curve in long Weierstrass form from an elliptic curve in short Weierstrass form.
+
+Returns an elliptic curve in long Weierstrass form with the same equation, and two maps which are the canonical isomorphisms between the curves.
+"""
+function tolongWeierstrass{T}(E::ShortWeierstrassCurve{T})
+	zero = Nemo.zero(Nemo.parent(E.a))
+	E2 = WeierstrassCurve(zero, zero, zero, E.a, E.b)
+	phi1 = ExplicitMap(E, E2,
+		function{T}(P::EllipticPoint{T,E})
+			Q = copy(P)
+			Q.curve = E2
+			return Q
+		end)
+	phi2 = ExplicitMap(E2, E,
+		function{T}(P::EllipticPoint{T,E2})
+			Q = copy(P)
+			Q.curve = E
+			return Q
+		end)
+	return E2, phi1, phi2
 end
+
+"""
+Get an elliptic curve in short Weierstrass form from an elliptic curve in long Weierstrass form. This reduction is not canonical.
+This assumes 2 and 3 are invertible in the base ring.
+
+Returns an elliptic curve in short Weierstrass form, and two explicit maps giving the change of variables.
+"""
+function toshortWeierstrass{T}(E::WeierstrassCurve{T})
+	b2, _, _, _ = b_invariants(E)
+	c4, c6 = c_invariants(E)
+	E2 = ShortWeierstrassCurve(-27 * c4, -54 * c6)
+	phi1 = ExplicitMap(E, E2,
+		function{T}(P::ProjectivePoint{T,E})
+			Yprime = (P.Y - E.a1 * P.X - E.a3 * P.Z) // 216
+			Xprime = (P.X - 3 * b2 * P.Z) // 36
+			Zprime = P.Z
+			return ProjectivePoint(Xprime, Yprime, Zprime, E2)
+		end)
+	phi2 = ExplicitMap(E2, E,
+		function{T}(P::ProjectivePoint{T,E2})
+			Xprime = 36 * P.X + 3 * b2 * P.Z
+			Yprime = 216 * P.Y + E.a3 * P.Z + E.a1 * Xprime
+			Zprime = P.Z
+			return ProjectivePoint(Xprime, Yprime, Zprime, E)
+		end)
+	return E2, phi1, phi2
+end
+
+
+######################################################################
+# Isogenies between Weierstrass curves
+######################################################################
+
+
+"""
+Get the polynomial associated to an l-torsion rational point, l being an odd prime.
+
+The input is not checked.
+"""
+function subgrouppoly{T<:FieldElem}(Q::ProjectivePoint{T}, l::Nemo.Integer)
+	normalize!(Q)
+	K = basering(Q)
+	R, x = PolynomialRing(K, "x")
+	poly = Nemo.one(R)
+	point = Q
+	for k = 1 : ((l-1) // 2)
+		poly *= (x - point.X)
+		point += Q
+	end
+	return poly
+end
+
+"""
+Build an isogeny given its domain and the polynomial defining its kernel.
+
+This isogeny is separable and normalized.
+"""
+function Isogeny{T}(E::WeierstrassCurve{T}, poly::GenPoly{T})
+	a1, a2, a3, a4, a6 = a_invariants(E)
+    b2, b4, b6, b8 = b_invariants(E)
+    n = degree(poly)
+    
+    s1 = - poly[n - 1]
+    s2 = poly[n - 2]
+    s3 = - poly[n - 3]
+    t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
+    w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
+    
+    E1 = WeierstrassCurve(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
+    
+    return Isogeny(E, poly, E1)
+end
+
+
+function Isogeny{T}(E::ShortWeierstrassCurve{T}, poly::GenPoly{T})
+	a1, a2, a3, a4, a6 = a_invariants(E)
+    b2, b4, b6, b8 = b_invariants(E)
+    n = degree(poly)
+    
+    s1 = - poly[n - 1]
+    s2 = poly[n - 2]
+    s3 = - poly[n - 3]
+    t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
+    w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
+    
+    E1 = ShortWeierstrassCurve(a4 - 5 * t, a6 - b2 * t - 7 * w)
+    
+    return Isogeny(E, poly, E1)
+end
+
+"""
+Build an isogeny given an elliptic curve in short Weierstrass form, the j-invariant of the targetted elliptic curve, and the degree.
+
+This isogeny is separable and normalized.
+"""
+
+function Isogeny{T}(E::ShortWeierstrassCurve{T}, degree::Nemo.Integer, jprime::T)
+	K = Nemo.parent_type(T)
+	Phi_l = modularpoly(degree)
+	R, x = PolynomialRing(K, "x")
+	Phi_l = R(Phi_l)
+	j = j_invariant(E)
+	l = K(degree)
+	
+	derx = derivative(Phi_l)(j)(jprime)
+	dery = derivative(Phi_l)(jprime)(j) #works because Phi_l is symmetric
+	
+	J = - K(18) // l * (E.b // E.a) * (derx // dery) * j
+	jj = jprime * (jprime - 1728)
+	
+	aprime = - J^2 // (48 * l^4 * jj)
+	bprime = - J^3 // (864 * l^6 * jprime * jj)
+	
+	Eprime = ShortWeierstrassCurve(aprime, bprime)
+	
+	poly = kernelpoly(E, Eprime, degree)
+	
+	return Isogeny(E, poly, Eprime)
+end
+	
+"""
+Given two elliptic curves and the degree of an isogeny linking them, compute the kernel polynomial.
+"""
+function kernelpoly{T}(E1::ShortWeierstrassCurve{T}, E2::ShortWeierstrassCurve{T}, degree::Nemo.Integer)
+#Stark, Elkies or BMSS
+end
+
+
+
+	
+end # module
+
+

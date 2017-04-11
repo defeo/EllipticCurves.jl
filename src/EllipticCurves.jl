@@ -37,12 +37,6 @@ Every map between elliptic curves inherits from this.
 """
 abstract Map{T<:Nemo.RingElem}
 
-"""
-Abstract class for isogenies.
-
-Every isogeny between elliptic curves inherits from this.
-"""
-abstract Isogeny{T<:Nemo.RingElem} <: Map{T}
 
 
 ######################################################################
@@ -89,6 +83,26 @@ Returns a point on the image curve, and throws an exception if the curves do not
 function Eval{T}(phi::Map{T}, P::EllipticPoint{T})
 end
 
+"""
+Get the base ring of an elliptic curve.
+"""
+function basering{T}(E::EllipticCurve{T})
+    return Nemo.parent_type(T)
+end
+
+
+######################################################################
+# Maps
+######################################################################
+
+include("maps.jl")
+
+######################################################################
+# Modular polynomials
+######################################################################
+
+include("modularpoly.jl")
+
 
 ######################################################################
 # Weierstrass curves
@@ -97,12 +111,16 @@ end
 include("weierstrass.jl")
 
 
-
 ######################################################################
 # Montgomery curves
 ######################################################################
 
 include("montgomery.jl")
+
+
+
+
+
 
 
 
