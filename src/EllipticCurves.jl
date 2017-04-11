@@ -90,12 +90,13 @@ function basering{T}(E::EllipticCurve{T})
     return Nemo.parent_type(T)
 end
 
-
+function A{T}(a::Function{T,T}, b::T) a(b) end
 ######################################################################
 # Maps
 ######################################################################
 
 include("maps.jl")
+
 
 ######################################################################
 # Modular polynomials
@@ -110,14 +111,14 @@ include("modularpoly.jl")
 
 include("weierstrass.jl")
 
-
+#=
 ######################################################################
 # Montgomery curves
 ######################################################################
 
 include("montgomery.jl")
 
-
+=#
 
 
 
