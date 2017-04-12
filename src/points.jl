@@ -38,6 +38,7 @@ Decides whether a projective point is at infinity.
 """
 isinfinity(P::ProjectivePoint) = Nemo.iszero(P.Z)
 
+
 """
 Get a normalized projective point from any projective point.
 This requires the base ring to be a field.

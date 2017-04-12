@@ -136,7 +136,7 @@ Get the discriminant of an elliptic curve in short Weierstrass form.
 Returns an element in the base ring.
 """
 function discriminant{T}(E::ShortWeierstrassCurve{T})
-    return -16*(4*(E.a)^3 + 27*(E.b)^3)
+    return -16*(4*(E.a)^3 + 27*(E.b)^2)
 end
 
 """
@@ -258,6 +258,61 @@ function plus{T<:Nemo.FieldElem}(P::ProjectivePoint{T, WeierstrassCurve{T}}, Q::
 end
 
 
+"""
+Get the sum of two normalized projective points on the same short Weierstrass curve, assuming they are not equal and not inverse of each other.
+
+This assumes the base ring is a field.
+"""
+function addgeneric{T<:Nemo.FieldElem}(P::ProjectivePoint{T, ShortWeierstrassCurve{T}}, Q::ProjectivePoint{T, ShortWeierstrassCurve{T}})
+    E = P.curve
+    denom = Q.X - P.X
+    lambda = (Q.Y - P.Y) // denom
+    nu = (P.Y * Q.X - P.X * Q.Y) // denom
+    
+    Xplus = lambda^2 - P.X - Q.X
+    Yplus = -lambda * Xplus - nu
+    Zplus = Nemo.one(basering(P))
+    return ProjectivePoint(Xplus, Yplus, Zplus, E)
+end
+
+"""
+Get the sum of two normalized projective points on the same short Weierstrass curve, assuming they have equal x-coordinate.
+
+This assumes the base ring is a field.
+"""
+function addequalx{T<:Nemo.FieldElem}(P::ProjectivePoint{T, ShortWeierstrassCurve{T}}, Q::ProjectivePoint{T, ShortWeierstrassCurve{T}})
+    E = P.curve
+    denom = P.Y + Q.Y
+    if Nemo.iszero(denom)
+	    return infinity(E)
+    else
+	    lambda = (3 * (P.X)^2 + E.a) // denom
+	    nu = (- (P.X)^3 + (E.a) * P.X + 2 * E.b) // denom
+	    Xplus = lambda^2 - P.X - Q.X
+        Yplus = -lambda * Xplus - nu
+        Zplus = Nemo.one(basering(P))
+	    return ProjectivePoint(Xplus, Yplus, Zplus, E)
+    end
+end
+
+"""
+Get the sum of two projective points on the same short Weierstrass curve.
+
+This assumes the base ring is a field.
+"""
+function plus{T<:Nemo.FieldElem}(P::ProjectivePoint{T, ShortWeierstrassCurve{T}}, Q::ProjectivePoint{T, ShortWeierstrassCurve{T}})
+    normalize!(P)
+    normalize!(Q)
+    if isinfinity(P)
+        return Q
+    elseif isinfinity(Q)
+        return P
+    elseif P.X == Q.X
+		return addequalx(P,Q)
+    else
+		return addgeneric(P,Q)
+    end
+end
 
 ######################################################################
 # Model changes
@@ -274,15 +329,11 @@ function tolongWeierstrass{T}(E::ShortWeierstrassCurve{T})
 	E2 = WeierstrassCurve(zero, zero, zero, E.a, E.b)
 	phi1 = ExplicitMap(E, E2,
 		function(P::ProjectivePoint)
-			Q = copy(P)
-			Q.curve = E2
-			return Q
+			return ProjectivePoint(P.X, P.Y, P.Z, E2)
 		end)
 	phi2 = ExplicitMap(E2, E,
 		function(P::ProjectivePoint)
-			Q = copy(P)
-			Q.curve = E
-			return Q
+			return ProjectivePoint(P.X, P.Y, P.Z, E)
 		end)
 	return E2, phi1, phi2
 end

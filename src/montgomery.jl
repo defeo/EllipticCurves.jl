@@ -17,12 +17,16 @@ immutable MontgomeryCurve{T<:Nemo.RingElem} <: EllipticCurve{T}
     B::T
 end
 
+function basering(E::MontgomeryCurve)
+	return Nemo.parent(E.A)
+end
+
 """
 Get a description of a Montgomery curve.
 """
 function show{T}(io::IO, E::MontgomeryCurve{T})
     print(io, "Elliptic Curve  $(E.B) y² = x³ + $(E.A) x² + x  over ")
-    show(io, Nemo.parent_type(T))
+    show(io, basering(E))
 end
 
 
@@ -94,7 +98,7 @@ Returns a new x-only point with Z-coordinate equal to 1, without changing the in
 """
 function normalized{T<:Nemo.FieldElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
     K = Nemo.parent(P.X)
-    if isidentity(P)
+    if isinfinity(P)
         return XonlyPoint(Nemo.zero(K), 
                                Nemo.zero(K), 
                                P.curve)
@@ -112,7 +116,7 @@ Does not create a new point, and changes the input.
 """
 function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
     K = Nemo.parent(P.X)
-    if isidentity(P)
+    if isinfinity(P)
         P.X = Nemo.zero(K)
     else
         P.X = P.X // P.Z
@@ -235,16 +239,22 @@ Top-level function for scalar multiplications with x-only points on Montgomery c
 """
 function times{T<:Nemo.RingElem}(k::Nemo.Integer, P::XonlyPoint{T, MontgomeryCurve{T}})
 	E = P.curve
-	if isinfinity(P)
+	if k==0
 		return infinity(E)
-    elseif isfixedtorsion(P)
-		if k % 2 == 0
-			return infinity(E)
-		else
-			return fixedtorsion(E)
-		end
+	elseif k<0
+		return times(-k, P)
 	else
-		return xladder(k, P)
+		if isinfinity(P)
+			return infinity(E)
+		elseif isfixedtorsion(P)
+			if k % 2 == 0
+				return infinity(E)
+			else
+				return fixedtorsion(E)
+			end
+		else
+			return xladder(k, P)
+		end
 	end
 end
 
