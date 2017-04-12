@@ -1,8 +1,8 @@
-module MontgomeryCurves
+module Montgomery
 
 import Nemo
 import Base.show
-import ..EllipticCurves: EllipticCurve, EllipticPoint, WeierstrassCurves.WeierstrassCurve
+import ..EllipticCurves: EllipticCurve, EllipticPoint, Weierstrass.WeierstrassCurve, Points.ProjectivePoint
 
 
 ######################################################################
@@ -10,9 +10,9 @@ import ..EllipticCurves: EllipticCurve, EllipticPoint, WeierstrassCurves.Weierst
 ######################################################################
 
 """
-Concrete type for (twisted) Montgomery curves. Base ring is required to be a field.
+Concrete type for (twisted) Montgomery curves.
 """
-immutable MontgomeryCurve{T<:Nemo.FieldElem} <: EllipticCurve{T}
+immutable MontgomeryCurve{T<:Nemo.RingElem} <: EllipticCurve{T}
     A::T
     B::T
 end
@@ -27,28 +27,51 @@ end
 
 
 
-
 ######################################################################
-# Montgomery curve points
+# Model changes
 ######################################################################
 
 """
-Concrete type for projective points on a Montgomery curve.
+Given an elliptic curve in Montgomery form, build an elliptic curve in long Weierstrass form isomorphic to it.
+
+Returns an elliptic curve and two explicit maps givint the change of variables.
 """
-type ProjectivePoint{T, E<:MontgomeryCurve{T}} <: EllipticPoint{T}
-	X::T
-	Y::T
-	Z::T
-	curve::E
+function tolongWeierstrass{T<:Nemo.FieldElem}(E::MontgomeryCurve{T})
+    zero = Nemo.zero(Nemo.parent(E.A))
+    E1 = WeierstrassCurve(zero, E.A // E.B, zero, Nemo.inv(E.B ^ 2), zero)
+	phi1 = ExplicitMap(E, E1,
+		function(P::ProjectivePoint)
+			Xprime = P.X // E.B
+			Yprime = P.Y // E.B
+			Zprime = P.Z
+			return ProjectivePoint(Xprime, Yprime, Zprime, E1)
+		end)
+	phi2 = ExplicitMap(E1, E,
+		function(P::ProjectivePoint)
+			Xprime = P.X * E.B
+			Yprime = P.Y * E.B
+			Zprime = P.Z
+			return ProjectivePoint(Xprime, Yprime, Zprime, E)
+		end)
+	return (E1, phi1, phi2)
+end
+
+
+
+
+######################################################################
+# X-only points for Montgomery curves
+######################################################################
 
 """
 Concrete type for x-only points to speed up arithmetic.
 """
-type XonlyPoint{T, E<:MontgomeryCurve{T}}
+type XonlyPoint{T<:Nemo.RingElem, form<:MontgomeryCurve}
     X::T
     Z::T
-    curve::E
+    curve::form
 end
+
 
 """
 Get a description of an x-only point.
@@ -56,19 +79,12 @@ Get a description of an x-only point.
 show(io::IO, P::XonlyPoint) = print(io, "($(P.X):$(P.Z))")
 
 """
-Get a description of a projective point.
+Create an x-only point from a projective point with 3 coordinates.
 """
-show(io::IO, P::ProjectivePoint) = print(io, "($(P.X):$(P.Y):$(P.Z))")
+function xonly{T<:Nemo.RingElem}(P::ProjectivePoint{T, MontgomeryCurve{T}})
+	return XonlyPoint(P.X, P.Z, P.curve)
+end
 
-"""
-Decide whether an x-only point is the point at infinity.
-"""
-isidentity(P::XonlyPoint) = Nemo.iszero(P.Z)
-
-"""
-Decide whether an x-only point is the fixed 2-torsion point of the Montgomery model (at the origin).
-"""
-isfixedtorsion(P::XonlyPoint) = Nemo.iszero(P.X)
 
 """
 Get a normalized x-only point from any x-only point.
@@ -76,7 +92,7 @@ This requires the base ring to be a field.
 
 Returns a new x-only point with Z-coordinate equal to 1, without changing the input.
 """
-function normalized{T<:Nemo.FieldElem, E}(P::XonlyPoint{T,E})
+function normalized{T<:Nemo.FieldElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
     K = Nemo.parent(P.X)
     if isidentity(P)
         return XonlyPoint(Nemo.zero(K), 
@@ -94,7 +110,7 @@ Normalizes a x-only point to a x-only point with Z-coordinate 1.
 
 Does not create a new point, and changes the input.
 """
-function normalize!{T<:Nemo.FieldElem, E}(P::XonlyPoint{T,E})
+function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
     K = Nemo.parent(P.X)
     if isidentity(P)
         P.X = Nemo.zero(K)
@@ -105,10 +121,23 @@ function normalize!{T<:Nemo.FieldElem, E}(P::XonlyPoint{T,E})
     return
 end
 
+
+"""
+Decide whether an x-only point is the point at infinity.
+"""
+isinfinity(P::XonlyPoint) = Nemo.iszero(P.Z)
+
+"""
+Decide whether an x-only point is the fixed 2-torsion point of the Montgomery model (at the origin).
+"""
+isfixedtorsion(P::XonlyPoint) = Nemo.iszero(P.X)
+
+
+
 """
 Get the x-only point at infinity on a Montgomery curve.
 """
-function identity(E::MontgomeryCurve)
+function infinity(E::MontgomeryCurve)
     K = Nemo.parent(E.A)
     zero = Nemo.zero(K)
     return XonlyPoint(zero, zero, E)
@@ -123,41 +152,9 @@ function fixedtorsion(E::MontgomeryCurve)
     return XonlyPoint(Nemo.zero(K), Nemo.one(K), E)
 end
 
-"""
-Create an x-only point from a projective point with 3 coordinates.
-"""
-function xonly{T, E<: MontgomeryCurve}(P::ProjectivePoint{T, E})
-	return XonlyPoint(P.X, P.Z, E)
-end
 
-######################################################################
-# Model changes
-######################################################################
 
-"""
-Given an elliptic curve in Montgomery form, build an elliptic curve in long Weierstrass form isomorphic to it.
 
-Returns an elliptic curve and two explicit maps givint the change of variables.
-"""
-function tolongWeierstrass{T}(E::MontgomeryCurve{T})
-    zero = Nemo.zero(Nemo.parent(E.A))
-    E1 = WeierstrassCurve(zero, E.A // E.B, zero, Nemo.inv(E.B ^ 2), zero)
-	phi1 = ExplicitMap(E, E1,
-		function(P::ProjectivePoint{T, E})
-			Xprime = P.X // E.B
-			Yprime = P.Y // E.B
-			Zprime = P.Z
-			return ProjectivePoint(Xprime, Yprime, Zprime, E1)
-		end)
-	phi2 = ExplicitMap(E1, E,
-		function(P::ProjectivePoint{T, E1})
-			Xprime = P.X * E.B
-			Yprime = P.Y * E.B
-			Zprime = P.Z
-			return ProjectivePoint(Xprime, Yprime, Zprime, E)
-		end)
-	return (E1, phi1, phi2)
-end
 
 
 ######################################################################
@@ -169,7 +166,9 @@ end
 """
 Double any x-only point using the least possible field operations.
 """
-function xdouble{T,E}(P::XonlyPoint{T,E})
+function xdouble{T<:Nemo.RingElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
+	E = P.curve
+	
     v1 = P.X + P.Z
     v1 = v1^2
     v2 = P.X - P.Z
@@ -195,7 +194,7 @@ Differential addition on x-only points using the least possible field operations
 
 This function assumes the difference is not (0:0) or (0:1).
 """
-function xadd{T,E}(P::XonlyPoint{T,E}, Q::XonlyPoint{T,E}, Minus::XonlyPoint{T,E})
+function xadd{T<:Nemo.RingElem}(P::XonlyPoint{T, MontgomeryCurve{T}}, Q::XonlyPoint{T, MontgomeryCurve{T}}, Minus::XonlyPoint{T, MontgomeryCurve{T}})
     v0 = P.X + P.Z
     v1 = Q.X - Q.Z
     v1 = v1 * v0
@@ -218,7 +217,7 @@ end
 """
 Montgomery ladder to compute scalar multiplications of generic x-only points, using the least possible field operations.
 """
-function xladder{T}(k::Nemo.Integer, P::XonlyPoint{T})
+function xladder{T<:Nemo.RingElem}(k::Nemo.Integer, P::XonlyPoint{T, MontgomeryCurve{T}})
 	normalize!(P)
     x0, x1 = P, xdouble(P)
     for b in bin(k)[2:end]
@@ -234,52 +233,24 @@ end
 """
 Top-level function for scalar multiplications with x-only points on Montgomery curves
 """
-function *{T,E}(k::Nemo.Integer, P::XonlyPoint{T,E})
-    if isidentity(P)
-        return P
+function times{T<:Nemo.RingElem}(k::Nemo.Integer, P::XonlyPoint{T, MontgomeryCurve{T}})
+	E = P.curve
+	if isinfinity(P)
+		return infinity(E)
     elseif isfixedtorsion(P)
-        if k % 2 == 0
-            return identity(E)
-        else
-            return fixedtorsion(E)
+		if k % 2 == 0
+			return infinity(E)
+		else
+			return fixedtorsion(E)
+		end
+	else
+		return xladder(k, P)
 	end
-    else
-        return xladder(k, P)
-    end
 end
 
 
 
 end # module
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

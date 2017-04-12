@@ -1,9 +1,11 @@
 module EllipticCurves
 
 import Nemo
+#=
+export EllipticCurve, AbstractWeierstrass, EllipticPoint, Map, ProjectivePoint, WeierstrassCurve, ShortWeierstrassCurve, MontgomeryCurve, XonlyPoint, ExplicitMap, Isogeny
 
-export EllipticCurve
-
+basecurve, domain, image, Eval, basering, normalize!, normalized, a_invariants, b_invariants, c_invariants, j_invariant, discriminant, infinity, +, -, *, Eval, xonly, isinfinity, isfixedtorsion, fixedtorsion, 
+=#
 ######################################################################
 # Abstract types
 ######################################################################
@@ -50,7 +52,7 @@ Every EllipticPoint must implement this method.
 
 Returns an elliptic curve.
 """
-function BaseCurve{T}(P::EllipticPoint{T})
+function basecurve{T}(P::EllipticPoint{T})
 end
 
 """
@@ -60,7 +62,7 @@ Every map must implement this method.
 
 Returns an elliptic curve.
 """
-function Domain{T}(phi::Map{T})
+function domain{T}(phi::Map{T})
 end
 
 """
@@ -70,7 +72,7 @@ Every map must implement this method.
 
 Returns an elliptic curve.
 """
-function Image{T}(phi::Map{T})
+function image{T}(phi::Map{T})
 end
 
 """
@@ -84,13 +86,22 @@ function Eval{T}(phi::Map{T}, P::EllipticPoint{T})
 end
 
 """
-Get the base ring of an elliptic curve.
+Abstract function to get the base ring of an elliptic curve.
+
+Every elliptic curve must implement this method.
 """
 function basering{T}(E::EllipticCurve{T})
-    return Nemo.parent_type(T)
 end
 
-function A{T}(a::Function{T,T}, b::T) a(b) end
+
+
+######################################################################
+# Points on elliptic curves
+######################################################################
+
+include("points.jl")
+
+
 ######################################################################
 # Maps
 ######################################################################
@@ -111,18 +122,20 @@ include("modularpoly.jl")
 
 include("weierstrass.jl")
 
-#=
+
 ######################################################################
 # Montgomery curves
 ######################################################################
 
 include("montgomery.jl")
 
-=#
+
+######################################################################
+# Tests
+######################################################################
 
 
-
-
+include("tests.jl")
 
 
 end # module

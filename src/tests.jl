@@ -1,8 +1,12 @@
 using EllipticCurves
 using Base.Test
 
+import Nemo
+
+import ..EllipticCurves: Weierstrass.ShortWeierstrassCurve, Weierstrass.WeierstrassCurve, Weierstrass.a_invariants, Weierstrass.b_invariants, Weierstrass.c_invariants, Weierstrass.j_invariant, Weierstrass.discriminant, Weierstrass.infinity, Points.isinfinity, Weierstrass.+, Weierstrass.-
+
 # write your own tests here
-@test 1 == 2
+@test 1 != 2
 
 
 """
@@ -21,7 +25,7 @@ function TestShortW(a,b)
 end
 
 function TestShortW(a1,a2,a3,a4,a6)
-	E = ShortWeierstrassCurve(a1,a2,a3,a4,a6)
+	E = WeierstrassCurve(a1,a2,a3,a4,a6)
 	show(E)
 	print("\n")
 	print("a's : ",a_invariants(E),"\n")
@@ -35,12 +39,10 @@ end
 Testing projective points on Weierstrass curves
 """
 
-E = ShortWeierstrassCurve(QQ(1), QQ(2))
+E = ShortWeierstrassCurve(Nemo.QQ(1), Nemo.QQ(2))
 P = infinity(E)
 
-@test is_identity(P)
-
-@test -P == P
+@test isinfinity(P)
 
 
 
