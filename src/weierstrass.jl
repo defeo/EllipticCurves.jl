@@ -3,7 +3,7 @@ module Weierstrass
 
 import Nemo
 import Base.show
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, EllipticPoint, Map, basecurve, Maps.ExplicitMap, Maps.Eval, Maps.Isogeny, ModularPoly.modularpoly, Points.ProjectivePoint, Points.basering, Points.normalize!, Points.isinfinity
+import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, basecurve, Maps.ExplicitMap, Maps.Eval, Maps.Isogeny, Points.EllipticPoint, Points.basering, Points.normalize!, Points.isinfinity
 
 
 
@@ -123,7 +123,7 @@ Get the discriminant of an elliptic curve in long Weierstrass form.
 
 Returns an element in the base ring.
 """
-function discriminant{T}(E::WeierstrassCurve{T})
+function discriminant{T}(E::AbstractWeierstrass{T})
     b2, b4, b6, b8 = b_invariants(E)
     return -b2^2*b8 - 8*b4^3 - 27*b6^2 + 9*b2*b4*b6
 end
@@ -145,7 +145,7 @@ This requires the base ring to be a field.
 
 Returns an element in the base field.
 """
-function j_invariant{T<:Nemo.FieldElem}(E::WeierstrassCurve{T})
+function j_invariant{T<:Nemo.FieldElem}(E::AbstractWeierstrass{T})
     c4, _ = c_invariants(E)
     disc = discriminant(E)
     return c4^3 // disc
@@ -166,153 +166,7 @@ end
 
 
 
-######################################################################
-# Addition laws for projective points
-######################################################################
 
-
-"""
-Get the point at infinity on an elliptic curve in Weierstrass form.
-"""
-function infinity{T}(E::AbstractWeierstrass{T})
-    R = basering(E)
-    return ProjectivePoint(Nemo.zero(R), Nemo.one(R), Nemo.zero(R), E)
-end
-
-
-
-"""
-Get the opposite of a point on an elliptic curve in *short* Weierstrass form.
-"""
-function minus{T<:Nemo.RingElem}(P::ProjectivePoint{T, ShortWeierstrassCurve{T}})
-	E = P.curve
-    return ProjectivePoint(P.X, -P.Y, P.Z, E)
-end
-
-"""
-Get the opposite of a point on an elliptic curve in general Weierstrass form.
-"""
-function minus{T<:Nemo.RingElem}(P::ProjectivePoint{T, WeierstrassCurve{T}})
-	E = P.curve
-    return ProjectivePoint(
-		P.X, 
-		- P.Y - (E.a1) * P.X - (E.a3) * P.Z, 
-		P.Z, 
-		E)
-end
-
-"""
-Get the sum of two normalized projective points on the same long Weierstrass curve, assuming they are not equal and not inverse of each other.
-
-This assumes the base ring is a field.
-"""
-function addgeneric{T<:Nemo.FieldElem}(P::ProjectivePoint{T, WeierstrassCurve{T}}, Q::ProjectivePoint{T, WeierstrassCurve{T}})
-    E = P.curve
-    denom = Q.X - P.X
-    lambda = (Q.Y - P.Y) // denom
-    nu = (P.Y * Q.X - P.X * Q.Y) // denom
-    
-    Xplus = lambda^2 + (E.a1) * lambda - (E.a2) - P.X - Q.X
-    Yplus = -(lambda + (E.a1)) * Xplus - nu - (E.a3)
-    Zplus = Nemo.one(basering(P))
-    return ProjectivePoint(Xplus, Yplus, Zplus, E)
-end
-
-"""
-Get the sum of two normalized projective points on the same long Weierstrass curve, assuming they have equal x-coordinate.
-
-This assumes the base ring is a field.
-"""
-function addequalx{T<:Nemo.FieldElem}(P::ProjectivePoint{T, WeierstrassCurve{T}}, Q::ProjectivePoint{T, WeierstrassCurve{T}})
-    E = P.curve
-    denom = P.Y + Q.Y + (E.a1) * Q.X + E.a3
-    if Nemo.iszero(denom)
-	    return infinity(E)
-    else
-	    lambda = (3 * (P.X)^2 + 2 * E.a2 * P.X + E.a4 - (E.a1) * P.Y) // denom
-	    nu = (- (P.X)^3 + (E.a4) * P.X + 2 * E.a6 - (E.a3) * P.Y) // denom
-	    Xplus = lambda^2 + (E.a1) * lambda - (E.a2) - P.X - Q.X
-        Yplus = -(lambda + (E.a1)) * Xplus - nu - (E.a3)
-        Zplus = Nemo.one(basering(P))
-	    return ProjectivePoint(Xplus, Yplus, Zplus, E)
-    end
-end
-
-"""
-Get the sum of two projective points on the same long Weierstrass curve.
-
-This assumes the base ring is a field.
-"""
-function plus{T<:Nemo.FieldElem}(P::ProjectivePoint{T, WeierstrassCurve{T}}, Q::ProjectivePoint{T, WeierstrassCurve{T}})
-    normalize!(P)
-    normalize!(Q)
-    if isinfinity(P)
-        return Q
-    elseif isinfinity(Q)
-        return P
-    elseif P.X == Q.X
-		return addequalx(P,Q)
-    else
-		return addgeneric(P,Q)
-    end
-end
-
-
-"""
-Get the sum of two normalized projective points on the same short Weierstrass curve, assuming they are not equal and not inverse of each other.
-
-This assumes the base ring is a field.
-"""
-function addgeneric{T<:Nemo.FieldElem}(P::ProjectivePoint{T, ShortWeierstrassCurve{T}}, Q::ProjectivePoint{T, ShortWeierstrassCurve{T}})
-    E = P.curve
-    denom = Q.X - P.X
-    lambda = (Q.Y - P.Y) // denom
-    nu = (P.Y * Q.X - P.X * Q.Y) // denom
-    
-    Xplus = lambda^2 - P.X - Q.X
-    Yplus = -lambda * Xplus - nu
-    Zplus = Nemo.one(basering(P))
-    return ProjectivePoint(Xplus, Yplus, Zplus, E)
-end
-
-"""
-Get the sum of two normalized projective points on the same short Weierstrass curve, assuming they have equal x-coordinate.
-
-This assumes the base ring is a field.
-"""
-function addequalx{T<:Nemo.FieldElem}(P::ProjectivePoint{T, ShortWeierstrassCurve{T}}, Q::ProjectivePoint{T, ShortWeierstrassCurve{T}})
-    E = P.curve
-    denom = P.Y + Q.Y
-    if Nemo.iszero(denom)
-	    return infinity(E)
-    else
-	    lambda = (3 * (P.X)^2 + E.a) // denom
-	    nu = (- (P.X)^3 + (E.a) * P.X + 2 * E.b) // denom
-	    Xplus = lambda^2 - P.X - Q.X
-        Yplus = -lambda * Xplus - nu
-        Zplus = Nemo.one(basering(P))
-	    return ProjectivePoint(Xplus, Yplus, Zplus, E)
-    end
-end
-
-"""
-Get the sum of two projective points on the same short Weierstrass curve.
-
-This assumes the base ring is a field.
-"""
-function plus{T<:Nemo.FieldElem}(P::ProjectivePoint{T, ShortWeierstrassCurve{T}}, Q::ProjectivePoint{T, ShortWeierstrassCurve{T}})
-    normalize!(P)
-    normalize!(Q)
-    if isinfinity(P)
-        return Q
-    elseif isinfinity(Q)
-        return P
-    elseif P.X == Q.X
-		return addequalx(P,Q)
-    else
-		return addgeneric(P,Q)
-    end
-end
 
 ######################################################################
 # Model changes
@@ -328,12 +182,12 @@ function tolongWeierstrass{T}(E::ShortWeierstrassCurve{T})
 	zero = Nemo.zero(basering(E))
 	E2 = WeierstrassCurve(zero, zero, zero, E.a, E.b)
 	phi1 = ExplicitMap(E, E2,
-		function(P::ProjectivePoint)
-			return ProjectivePoint(P.X, P.Y, P.Z, E2)
+		function(P::EllipticPoint)
+			return EllipticPoint(P.X, P.Y, P.Z, E2)
 		end)
 	phi2 = ExplicitMap(E2, E,
-		function(P::ProjectivePoint)
-			return ProjectivePoint(P.X, P.Y, P.Z, E)
+		function(P::EllipticPoint)
+			return EllipticPoint(P.X, P.Y, P.Z, E)
 		end)
 	return E2, phi1, phi2
 end
@@ -350,21 +204,34 @@ function toshortWeierstrass{T}(E::WeierstrassCurve{T})
 	c4, c6 = c_invariants(E)
 	E2 = ShortWeierstrassCurve(-27 * c4, -54 * c6)
 	phi1 = ExplicitMap(E, E2,
-		function(P::ProjectivePoint)
+		function(P::EllipticPoint)
 			Yprime = (P.Y - E.a1 * P.X - E.a3 * P.Z) // 216
 			Xprime = (P.X - 3 * b2 * P.Z) // 36
 			Zprime = P.Z
-			return ProjectivePoint(Xprime, Yprime, Zprime, E2)
+			return EllipticPoint(Xprime, Yprime, Zprime, E2)
 		end)
 	phi2 = ExplicitMap(E2, E,
-		function(P::ProjectivePoint)
+		function(P::EllipticPoint)
 			Xprime = 36 * P.X + 3 * b2 * P.Z
 			Yprime = 216 * P.Y + E.a3 * P.Z + E.a1 * Xprime
 			Zprime = P.Z
-			return ProjectivePoint(Xprime, Yprime, Zprime, E)
+			return EllipticPoint(Xprime, Yprime, Zprime, E)
 		end)
 	return E2, phi1, phi2
 end
+
+######################################################################
+# Modular polynomials
+######################################################################
+
+include("modularpoly.jl")
+
+
+######################################################################
+# BMSS algorithm
+######################################################################
+
+include("bmss.jl")
 
 
 ######################################################################
@@ -377,7 +244,7 @@ Get the polynomial associated to an l-torsion rational point, l being an odd pri
 
 The input is not checked.
 """
-function subgrouppoly{T<:Nemo.FieldElem, form}(Q::ProjectivePoint{T, form}, l::Nemo.Integer)
+function subgrouppoly{T<:Nemo.FieldElem, form}(Q::EllipticPoint{T, form}, l::Nemo.Integer)
 	normalize!(Q)
 	K = basering(Q)
 	R, x = PolynomialRing(K, "x")
@@ -456,13 +323,6 @@ function Isogeny{T}(E::ShortWeierstrassCurve{T}, degree::Nemo.Integer, jprime::T
 	poly = kernelpoly(E, Eprime, degree)
 	
 	return Isogeny(E, poly, Eprime)
-end
-	
-"""
-Given two elliptic curves and the degree of an isogeny linking them, compute the kernel polynomial.
-"""
-function kernelpoly{T}(E1::ShortWeierstrassCurve{T}, E2::ShortWeierstrassCurve{T}, degree::Nemo.Integer)
-#Stark, Elkies or BMSS
 end
 
 

@@ -3,7 +3,7 @@ using Base.Test
 
 import Nemo
 
-import ..EllipticCurves: Weierstrass.ShortWeierstrassCurve, Weierstrass.WeierstrassCurve, Weierstrass.a_invariants, Weierstrass.b_invariants, Weierstrass.c_invariants, Weierstrass.j_invariant, Weierstrass.discriminant, Weierstrass.infinity, Points.isinfinity, Weierstrass.+, Weierstrass.-
+import ..EllipticCurves: Weierstrass.ShortWeierstrassCurve, Weierstrass.WeierstrassCurve, Weierstrass.a_invariants, Weierstrass.b_invariants, Weierstrass.c_invariants, Weierstrass.j_invariant, Weierstrass.discriminant, Points.isinfinity, Weierstrass.+, Weierstrass.-, Points.infinity
 
 # write your own tests here
 @test 1 != 2

@@ -2,7 +2,7 @@ module Maps
 
 import Nemo
 import Base.show
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, EllipticPoint, Map, basecurve, domain, image, Eval
+import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, basecurve, domain, image, Eval, Points.EllipticPoint
 
 ######################################################################
 # Concrete types for maps

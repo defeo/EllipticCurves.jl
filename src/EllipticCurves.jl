@@ -1,11 +1,9 @@
 module EllipticCurves
 
 import Nemo
-#=
-export EllipticCurve, AbstractWeierstrass, EllipticPoint, Map, ProjectivePoint, WeierstrassCurve, ShortWeierstrassCurve, MontgomeryCurve, XonlyPoint, ExplicitMap, Isogeny
 
-basecurve, domain, image, Eval, basering, normalize!, normalized, a_invariants, b_invariants, c_invariants, j_invariant, discriminant, infinity, +, -, *, Eval, xonly, isinfinity, isfixedtorsion, fixedtorsion, 
-=#
+export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ProjectivePoint, WeierstrassCurve, ShortWeierstrassCurve, MontgomeryCurve, XonlyPoint, ExplicitMap, Isogeny, basecurve, domain, image, Eval, basering, normalize!, normalized, a_invariants, b_invariants, c_invariants, j_invariant, discriminant, infinity, Eval, xonly, isinfinity, isfixedtorsion, fixedtorsion
+
 ######################################################################
 # Abstract types
 ######################################################################
@@ -30,7 +28,7 @@ Abstract classes for elliptic curve points.
 
 Every elliptic curve point inherits from this.
 """
-abstract EllipticPoint{T<:Nemo.RingElem}
+abstract ProjectivePoint{T<:Nemo.RingElem}
 
 """
 Abstract class for maps.
@@ -46,13 +44,13 @@ abstract Map{T<:Nemo.RingElem}
 ######################################################################
 
 """
-Abstract function to get the base curve of an EllipticPoint.
+Abstract function to get the base curve of an ProjectivePoint.
 
-Every EllipticPoint must implement this method.
+Every ProjectivePoint must implement this method.
 
 Returns an elliptic curve.
 """
-function basecurve{T}(P::EllipticPoint{T})
+function basecurve{T}(P::ProjectivePoint{T})
 end
 
 """
@@ -82,7 +80,7 @@ Every map between elliptic curves must implement this method with the points of 
 
 Returns a point on the image curve, and throws an exception if the curves do not match.
 """
-function Eval{T}(phi::Map{T}, P::EllipticPoint{T})
+function Eval{T}(phi::Map{T}, P::ProjectivePoint{T})
 end
 
 """
@@ -109,11 +107,7 @@ include("points.jl")
 include("maps.jl")
 
 
-######################################################################
-# Modular polynomials
-######################################################################
 
-include("modularpoly.jl")
 
 
 ######################################################################

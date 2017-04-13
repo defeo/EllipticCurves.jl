@@ -2,7 +2,7 @@ module Montgomery
 
 import Nemo
 import Base.show
-import ..EllipticCurves: EllipticCurve, EllipticPoint, Weierstrass.WeierstrassCurve, Points.ProjectivePoint
+import ..EllipticCurves: EllipticCurve, ProjectivePoint, Weierstrass.WeierstrassCurve, Points.EllipticPoint, Weierstrass.AbstractWeierstrass
 
 
 ######################################################################
@@ -12,7 +12,7 @@ import ..EllipticCurves: EllipticCurve, EllipticPoint, Weierstrass.WeierstrassCu
 """
 Concrete type for (twisted) Montgomery curves.
 """
-immutable MontgomeryCurve{T<:Nemo.RingElem} <: EllipticCurve{T}
+immutable MontgomeryCurve{T<:Nemo.RingElem} <: AbstractWeierstrass{T}
     A::T
     B::T
 end
@@ -29,6 +29,15 @@ function show{T}(io::IO, E::MontgomeryCurve{T})
     show(io, basering(E))
 end
 
+"""
+Get the a-invariants of a Montgomery Curve.
+"""
+
+function a_invariants{T}(E::MontgomeryCurve{T})
+	R = basering(E)
+	zero = Nemo.zero(R)
+	return (zero, E.A, zero, E.B, zero)
+end
 
 
 ######################################################################
@@ -44,18 +53,18 @@ function tolongWeierstrass{T<:Nemo.FieldElem}(E::MontgomeryCurve{T})
     zero = Nemo.zero(Nemo.parent(E.A))
     E1 = WeierstrassCurve(zero, E.A // E.B, zero, Nemo.inv(E.B ^ 2), zero)
 	phi1 = ExplicitMap(E, E1,
-		function(P::ProjectivePoint)
+		function(P::EllipticPoint)
 			Xprime = P.X // E.B
 			Yprime = P.Y // E.B
 			Zprime = P.Z
-			return ProjectivePoint(Xprime, Yprime, Zprime, E1)
+			return EllipticPoint(Xprime, Yprime, Zprime, E1)
 		end)
 	phi2 = ExplicitMap(E1, E,
-		function(P::ProjectivePoint)
+		function(P::EllipticPoint)
 			Xprime = P.X * E.B
 			Yprime = P.Y * E.B
 			Zprime = P.Z
-			return ProjectivePoint(Xprime, Yprime, Zprime, E)
+			return EllipticPoint(Xprime, Yprime, Zprime, E)
 		end)
 	return (E1, phi1, phi2)
 end
@@ -85,7 +94,7 @@ show(io::IO, P::XonlyPoint) = print(io, "($(P.X):$(P.Z))")
 """
 Create an x-only point from a projective point with 3 coordinates.
 """
-function xonly{T<:Nemo.RingElem}(P::ProjectivePoint{T, MontgomeryCurve{T}})
+function xonly{T<:Nemo.RingElem}(P::EllipticPoint{T, MontgomeryCurve{T}})
 	return XonlyPoint(P.X, P.Z, P.curve)
 end
 
