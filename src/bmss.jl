@@ -1,7 +1,8 @@
 module BMSS
 
 import Nemo: Integer, AbsSeriesElem, AbsSeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, characteristic, parent, one, gen, base_ring, shift_left, shift_right, degree, coeff, truncate, inv, sqrt, set_prec!, divrem, compose
-import ..Weierstrass: EllipticCurve, basering, a_invariants, AbstractWeierstrass
+
+import ..Weierstrass: EllipticCurve, a_invariants, AbstractWeierstrass
 
 
 ######################################################################

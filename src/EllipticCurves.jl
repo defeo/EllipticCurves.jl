@@ -1,8 +1,11 @@
 module EllipticCurves
 
 import Nemo
+import Nemo: base_ring, discriminant
 
-export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ProjectivePoint, WeierstrassCurve, ShortWeierstrassCurve, MontgomeryCurve, XonlyPoint, ExplicitMap, Isogeny, basecurve, domain, image, Eval, base_ring, normalize!, normalized, a_invariants, b_invariants, c_invariants, j_invariant, discriminant, infinity, Eval, xonly, isinfinity, isfixedtorsion, fixedtorsion
+import Base: show, normalize!, isvalid, ==
+
+export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, base_curve, domain, image, Eval, base_ring
 
 ######################################################################
 # Abstract types
@@ -38,66 +41,29 @@ Every map between elliptic curves inherits from this.
 abstract Map{T<:Nemo.RingElem}
 
 
-
 ######################################################################
 # Abstract functions
 ######################################################################
 
-"""
-Abstract function to get the base curve of an ProjectivePoint.
 
-Every ProjectivePoint must implement this method.
-
-Returns an elliptic curve.
-"""
-function basecurve{T}(P::ProjectivePoint{T})
-end
-
-"""
-Abstract function to get the domain curve of a Map.
-
-Every map must implement this method.
-
-Returns an elliptic curve.
-"""
-function domain{T}(phi::Map{T})
-end
-
-"""
-Abstract function to get the image curve of a Map.
-
-Every map must implement this method.
-
-Returns an elliptic curve.
-"""
-function image{T}(phi::Map{T})
-end
-
-"""
-Abstract function to evaluate maps at points.
-
-Every map between elliptic curves must implement this method with the points of the domain curve.
-
-Returns a point on the image curve, and throws an exception if the curves do not match.
-"""
-function Eval{T}(phi::Map{T}, P::ProjectivePoint{T})
-end
-
-"""
-Abstract function to get the base ring of an elliptic curve.
-
-Every elliptic curve must implement this method.
-"""
-function base_ring{T}(E::EllipticCurve{T})
+function a_invariants(E::AbstractWeierstrass)
 end
 
 
+function ==(E1::AbstractWeierstrass, E2::AbstractWeierstrass)
+	return (a_invariants(E1) == a_invariants(E2))
+end
+
+function areequal(P::ProjectivePoint, Q::ProjectivePoint)
+end
 
 ######################################################################
 # Points on elliptic curves
 ######################################################################
 
 include("points.jl")
+
+using .Points
 
 
 ######################################################################
@@ -106,7 +72,7 @@ include("points.jl")
 
 include("maps.jl")
 
-
+using .Maps
 
 
 
@@ -116,6 +82,7 @@ include("maps.jl")
 
 include("weierstrass.jl")
 
+using .Weierstrass
 
 ######################################################################
 # Montgomery curves
@@ -123,7 +90,14 @@ include("weierstrass.jl")
 
 include("montgomery.jl")
 
+using .Montgomery
 
+
+######################################################################
+# Tests
+######################################################################
+
+include("../test/runtests.jl")
 
 
 end # module

@@ -1,11 +1,10 @@
 module Points
 
 import Nemo
-import Base.show
 
-import ..EllipticCurves: EllipticCurve, ProjectivePoint, AbstractWeierstrass
+import ..EllipticCurves: EllipticCurve, ProjectivePoint, AbstractWeierstrass, a_invariants, show, normalize!, isvalid, ==, base_ring, areequal
 
-
+export EllipticPoint, base_ring, isinfinity, normalized, areequal, infinity, minus, addgeneric, addequalx, plus, isvalid
 
 ######################################################################
 # Basic methods for projective points
@@ -16,15 +15,23 @@ import ..EllipticCurves: EllipticCurve, ProjectivePoint, AbstractWeierstrass
 Concrete types for projective points on elliptic curves.
 """
 
-type EllipticPoint{T<:Nemo.RingElem, form<:EllipticCurve} <: ProjectivePoint{T}
+type EllipticPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
 	X::T
 	Y::T
 	Z::T
-	curve::form
+	curve::AbstractWeierstrass{T}
 end
 
 function base_ring(P::EllipticPoint)
 	return Nemo.parent(P.X)
+end
+
+"""
+Decide whether two projective points are given by the exact same coordinates.
+"""
+
+function ==(P::EllipticPoint, Q::EllipticPoint)
+	return (P.curve == Q.curve) & (P.X == Q.X) & (P.Y == Q.Y) & (P.Z == Q.Z)
 end
 
 """
@@ -48,7 +55,7 @@ This requires the base ring to be a field.
 
 Returns a new projective point with Z-coordinate equal to 1, without changing the input.
 """
-function normalized{T<:Nemo.FieldElem, form}(P::EllipticPoint{T, form})
+function normalized(P::EllipticPoint)
     K = Nemo.parent(P.X)
     if isinfinity(P)
         return EllipticPoint(Nemo.zero(K),
@@ -68,7 +75,7 @@ Normalizes a projective point to a projective point with Z-coordinate 1.
 
 Does not create a new point, and changes the input.
 """
-function normalize!{T<:Nemo.FieldElem, form}(P::EllipticPoint{T, form})
+function normalize!{T<:Nemo.FieldElem}(P::EllipticPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
         P.X = Nemo.zero(K)
@@ -98,13 +105,13 @@ end
 """
 Check if a given elliptic point on a Weierstrass curve is valid.
 """
-function isvalid{T}(P::EllipticPoint{T, AbstractWeierstrass{T}})
+function isvalid(P::EllipticPoint)
 	E = P.curve
 	R = base_ring(E)
 	a1, a2, a3, a4, a6 = a_invariants(E)
 	if P.X == P.Y == P.Z == Nemo.zero(R)
 		return false
-	elseif P.Z * P.Y ^2 + a1 * P.X * P.Y * P.Z + a3 * P.Y * P.Z ^2 != P.X ^3 + a2 * P.X ^2 * P.Z + a4 * P.X * P.Z ^2 + a6 * P.Z^3)
+	elseif (P.Z * P.Y ^2 + a1 * P.X * P.Y * P.Z + a3 * P.Y * P.Z ^2 != P.X ^3 + a2 * P.X ^2 * P.Z + a4 * P.X * P.Z ^2 + a6 * P.Z^3)
 		return false
 	else
 		return true
@@ -124,7 +131,7 @@ end
 """
 Get the opposite of a point on an elliptic curve in Weierstrass form.
 """
-function minus{T<:Nemo.RingElem}(P::EllipticPoint{T, AbstractWeierstrass{T}})
+function minus(P::EllipticPoint)
 	E = P.curve
 	a1, _, a3, _, _ = a_invariants(E)
     return EllipticPoint(P.X, - P.Y - a1 * P.X - a3 * P.Z, P.Z, E)
@@ -135,7 +142,7 @@ Get the sum of two normalized projective points on the same Weierstrass curve, a
 
 This assumes the base ring is a field.
 """
-function addgeneric{T<:Nemo.FieldElem}(P::EllipticPoint{T, AbstractWeierstrass{T}}, Q::EllipticPoint{T, AbstractWeierstrass{T}})
+function addgeneric{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
     E = P.curve
 	a1, a2, a3, _, _ = a_invariants(E)
     denom = Q.X - P.X
@@ -153,7 +160,7 @@ Get the sum of two normalized projective points on the same long Weierstrass cur
 
 This assumes the base ring is a field.
 """
-function addequalx{T<:Nemo.FieldElem}(P::EllipticPoint{T, AbstractWeierstrass{T}}, Q::EllipticPoint{T, AbstractWeierstrass{T}})
+function addequalx{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
     E = P.curve
 	a1, a2, a3, a4, a6 = a_invariants(E)
     denom = P.Y + Q.Y + a1 * Q.X + a3
@@ -174,7 +181,7 @@ Get the sum of two projective points on the same long Weierstrass curve.
 
 This assumes the base ring is a field.
 """
-function plus{T<:Nemo.FieldElem}(P::EllipticPoint{T, AbstractWeierstrass{T}}, Q::EllipticPoint{T, AbstractWeierstrass{T}})
+function plus{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
     normalize!(P)
     normalize!(Q)
     if isinfinity(P)

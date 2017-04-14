@@ -2,10 +2,10 @@ module Weierstrass
 
 
 import Nemo
-import Base.show
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, basecurve, Maps.ExplicitMap, Maps.Eval, Maps.Isogeny, Points.EllipticPoint, Points.base_ring, Points.normalize!, Points.isinfinity
 
+import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Eval, Isogeny, EllipticPoint, base_ring, normalize!, isinfinity, isvalid, a_invariants, show, ==, discriminant
 
+export WeierstrassCurve, base_ring, ShortWeierstrassCurve, show, a_invariants, b_invariants, c_invariants, discriminant, j_invariant, tolongWeierstrass, toshortWeierstrass, Isogeny
 
 ######################################################################
 # Basic methods
@@ -25,6 +25,9 @@ end
 function base_ring(E::WeierstrassCurve)
     return Nemo.parent(E.a1)
 end
+
+
+
 
 """
 Concrete types for elliptic curves in short Weierstrass form over a ring.
@@ -250,7 +253,7 @@ Get the polynomial associated to an l-torsion rational point, l being an odd pri
 
 The input is not checked.
 """
-function subgrouppoly{T<:Nemo.FieldElem, form}(Q::EllipticPoint{T, form}, l::Nemo.Integer)
+function subgrouppoly{T<:Nemo.FieldElem}(Q::EllipticPoint{T}, l::Nemo.Integer)
 	normalize!(Q)
 	K = base_ring(Q)
 	R, x = PolynomialRing(K, "x")
@@ -268,7 +271,7 @@ Build an isogeny given its domain and the polynomial defining its kernel.
 
 This isogeny is separable and normalized.
 """
-function Isogeny{T}(E::WeierstrassCurve{T}, poly::Nemo.GenPoly{T})
+function Isogeny{T}(E::WeierstrassCurve{T}, poly::Nemo.PolyElem{T})
 	a1, a2, a3, a4, a6 = a_invariants(E)
     b2, b4, b6, b8 = b_invariants(E)
     n = degree(poly)
@@ -285,7 +288,7 @@ function Isogeny{T}(E::WeierstrassCurve{T}, poly::Nemo.GenPoly{T})
 end
 
 
-function Isogeny{T}(E::ShortWeierstrassCurve{T}, poly::Nemo.GenPoly{T})
+function Isogeny{T}(E::ShortWeierstrassCurve{T}, poly::Nemo.PolyElem{T})
 	a1, a2, a3, a4, a6 = a_invariants(E)
 	b2, b4, b6, b8 = b_invariants(E)
 	n = degree(poly)

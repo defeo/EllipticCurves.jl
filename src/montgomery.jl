@@ -1,8 +1,10 @@
 module Montgomery
 
 import Nemo
-import Base.show
-import ..EllipticCurves: EllipticCurve, ProjectivePoint, Weierstrass.WeierstrassCurve, Points.EllipticPoint, Weierstrass.AbstractWeierstrass
+
+import ..EllipticCurves: EllipticCurve, ProjectivePoint, WeierstrassCurve, EllipticPoint, AbstractWeierstrass, ExplicitMap, base_ring, normalize!, isinfinity, a_invariants, normalized, tolongWeierstrass, show, ==, areequal
+
+export MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, xdouble, xadd, xladder, times
 
 
 ######################################################################
@@ -79,12 +81,22 @@ end
 """
 Concrete type for x-only points to speed up arithmetic.
 """
-type XonlyPoint{T<:Nemo.RingElem, form<:MontgomeryCurve}
+type XonlyPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
     X::T
     Z::T
-    curve::form
+    curve::MontgomeryCurve{T}
 end
 
+function base_ring(P::XonlyPoint)
+	return Nemo.parent(P.X)
+end
+
+"""
+Decide if two x-only points are given by the exact same coordinates.
+"""
+function ==(P::XonlyPoint, Q::XonlyPoint)
+	return (P.curve == Q.curve) & (P.X == Q.X) & (P.Z == Q.Z)
+end
 
 """
 Get a description of an x-only point.
@@ -94,7 +106,7 @@ show(io::IO, P::XonlyPoint) = print(io, "($(P.X):$(P.Z))")
 """
 Create an x-only point from a projective point with 3 coordinates.
 """
-function xonly{T<:Nemo.RingElem}(P::EllipticPoint{T, MontgomeryCurve{T}})
+function xonly{T<:Nemo.RingElem}(P::EllipticPoint{T})
 	return XonlyPoint(P.X, P.Z, P.curve)
 end
 
@@ -105,7 +117,7 @@ This requires the base ring to be a field.
 
 Returns a new x-only point with Z-coordinate equal to 1, without changing the input.
 """
-function normalized{T<:Nemo.FieldElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
+function normalized{T<:Nemo.FieldElem}(P::XonlyPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
         return XonlyPoint(Nemo.zero(K), 
@@ -123,7 +135,7 @@ Normalizes a x-only point to a x-only point with Z-coordinate 1.
 
 Does not create a new point, and changes the input.
 """
-function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
+function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
         P.X = Nemo.zero(K)
@@ -134,6 +146,10 @@ function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
     return
 end
 
+
+function areequal{T<:Nemo.FieldElem}(P::XonlyPoint{T}, Q::XonlyPoint{T})
+	return normalized(P) == normalized(Q)
+end
 
 """
 Decide whether an x-only point is the point at infinity.
@@ -179,9 +195,10 @@ end
 """
 Double any x-only point using the least possible field operations.
 """
-function xdouble{T<:Nemo.RingElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
+function xdouble{T}(P::XonlyPoint{T})
 	E = P.curve
-	
+	R = base_ring(E)
+
     v1 = P.X + P.Z
     v1 = v1^2
     v2 = P.X - P.Z
@@ -195,8 +212,8 @@ function xdouble{T<:Nemo.RingElem}(P::XonlyPoint{T, MontgomeryCurve{T}})
     
     Z2 = v1 * v3
     
-    if Z2 == 0
-        X2 = 0
+    if Z2 == Nemo.zero(R)
+        X2 = Nemo.zero(R)
     end
     
     return XonlyPoint(X2, Z2, E)
@@ -207,7 +224,7 @@ Differential addition on x-only points using the least possible field operations
 
 This function assumes the difference is not (0:0) or (0:1).
 """
-function xadd{T<:Nemo.RingElem}(P::XonlyPoint{T, MontgomeryCurve{T}}, Q::XonlyPoint{T, MontgomeryCurve{T}}, Minus::XonlyPoint{T, MontgomeryCurve{T}})
+function xadd{T}(P::XonlyPoint{T}, Q::XonlyPoint{T}, Minus::XonlyPoint{T})
     v0 = P.X + P.Z
     v1 = Q.X - Q.Z
     v1 = v1 * v0
@@ -230,7 +247,7 @@ end
 """
 Montgomery ladder to compute scalar multiplications of generic x-only points, using the least possible field operations.
 """
-function xladder{T<:Nemo.RingElem}(k::Nemo.Integer, P::XonlyPoint{T, MontgomeryCurve{T}})
+function xladder(k::Nemo.Integer, P::XonlyPoint)
 	normalize!(P)
     x0, x1 = P, xdouble(P)
     for b in bin(k)[2:end]
@@ -246,7 +263,7 @@ end
 """
 Top-level function for scalar multiplications with x-only points on Montgomery curves
 """
-function times{T<:Nemo.RingElem}(k::Nemo.Integer, P::XonlyPoint{T, MontgomeryCurve{T}})
+function times(k::Nemo.Integer, P::XonlyPoint)
 	E = P.curve
 	if k==0
 		return infinity(E)
