@@ -2,7 +2,7 @@ module EllipticCurves
 
 import Nemo
 
-export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ProjectivePoint, WeierstrassCurve, ShortWeierstrassCurve, MontgomeryCurve, XonlyPoint, ExplicitMap, Isogeny, basecurve, domain, image, Eval, basering, normalize!, normalized, a_invariants, b_invariants, c_invariants, j_invariant, discriminant, infinity, Eval, xonly, isinfinity, isfixedtorsion, fixedtorsion
+export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ProjectivePoint, WeierstrassCurve, ShortWeierstrassCurve, MontgomeryCurve, XonlyPoint, ExplicitMap, Isogeny, basecurve, domain, image, Eval, base_ring, normalize!, normalized, a_invariants, b_invariants, c_invariants, j_invariant, discriminant, infinity, Eval, xonly, isinfinity, isfixedtorsion, fixedtorsion
 
 ######################################################################
 # Abstract types
@@ -88,7 +88,7 @@ Abstract function to get the base ring of an elliptic curve.
 
 Every elliptic curve must implement this method.
 """
-function basering{T}(E::EllipticCurve{T})
+function base_ring{T}(E::EllipticCurve{T})
 end
 
 
@@ -124,12 +124,6 @@ include("weierstrass.jl")
 include("montgomery.jl")
 
 
-######################################################################
-# Tests
-######################################################################
-
-
-include("tests.jl")
 
 
 end # module

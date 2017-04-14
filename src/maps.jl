@@ -16,7 +16,7 @@ The 'map' field must contain a function sending a point on the domain curve to a
 immutable ExplicitMap{T} <: Map{T}
 	domain::EllipticCurve{T}
 	image::EllipticCurve{T}
-	map::Any
+	map::Function
 end
 
 """
@@ -24,7 +24,7 @@ Concrete type for isogenies between Weierstrass or Montgomery elliptic curves. I
 """
 immutable Isogeny{T} <: Map{T}
 	domain::EllipticCurve{T}
-	kernel::Nemo.GenPoly{T}
+	kernel::Nemo.PolyElem{T}
 	image::EllipticCurve{T}
 end
 
@@ -43,7 +43,7 @@ end
 """
 Shows a description of an explicit map. Since the map itself can be anything, only the domain and image curves are given.
 """
-function show{T}(io::IO, phi::ExplicitMap{T})
+function show(io::IO, phi::ExplicitMap)
 	print(io, "Explicit map between ")
 	show(io, phi.domain)
 	print(io, " and ")

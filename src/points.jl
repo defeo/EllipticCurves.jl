@@ -23,7 +23,7 @@ type EllipticPoint{T<:Nemo.RingElem, form<:EllipticCurve} <: ProjectivePoint{T}
 	curve::form
 end
 
-function basering(P::EllipticPoint)
+function base_ring(P::EllipticPoint)
 	return Nemo.parent(P.X)
 end
 
@@ -38,8 +38,9 @@ end
 """
 Decides whether a projective point is at infinity.
 """
-isinfinity(P::EllipticPoint) = Nemo.iszero(P.Z)
-
+function isinfinity(P::EllipticPoint)
+	return Nemo.iszero(P.Z)
+end
 
 """
 Get a normalized projective point from any projective point.
@@ -86,7 +87,7 @@ Decides whether two projective points are the same.
 """
 
 function areequal(P::EllipticPoint, Q::EllipticPoint)
-	return normalized(P) == normalized(Q) & P.curve == Q.curve
+	return normalized(P) == normalized(Q)
 end
 
 
@@ -94,12 +95,28 @@ end
 # Addition laws for projective points on Weierstrass curves
 ######################################################################
 
+"""
+Check if a given elliptic point on a Weierstrass curve is valid.
+"""
+function isvalid{T}(P::EllipticPoint{T, AbstractWeierstrass{T}})
+	E = P.curve
+	R = base_ring(E)
+	a1, a2, a3, a4, a6 = a_invariants(E)
+	if P.X == P.Y == P.Z == Nemo.zero(R)
+		return false
+	elseif P.Z * P.Y ^2 + a1 * P.X * P.Y * P.Z + a3 * P.Y * P.Z ^2 != P.X ^3 + a2 * P.X ^2 * P.Z + a4 * P.X * P.Z ^2 + a6 * P.Z^3)
+		return false
+	else
+		return true
+	end
+end
+
 
 """
 Get the point at infinity on an elliptic curve in Weierstrass form.
 """
-function infinity{T}(E::AbstractWeierstrass{T})
-    R = basering(E)
+function infinity(E::AbstractWeierstrass)
+    R = base_ring(E)
     return EllipticPoint(Nemo.zero(R), Nemo.one(R), Nemo.zero(R), E)
 end
 
@@ -127,7 +144,7 @@ function addgeneric{T<:Nemo.FieldElem}(P::EllipticPoint{T, AbstractWeierstrass{T
     
     Xplus = lambda^2 + a1 * lambda - a2 - P.X - Q.X
     Yplus = -(lambda + a1) * Xplus - nu - a3
-    Zplus = Nemo.one(basering(P))
+    Zplus = Nemo.one(base_ring(P))
     return EllipticPoint(Xplus, Yplus, Zplus, E)
 end
 
@@ -147,7 +164,7 @@ function addequalx{T<:Nemo.FieldElem}(P::EllipticPoint{T, AbstractWeierstrass{T}
 	    nu = (- (P.X)^3 + a4 * P.X + 2 * a6 - a3 * P.Y) // denom
 	    Xplus = lambda^2 + a1 * lambda - a2 - P.X - Q.X
         Yplus = -(lambda + a1) * Xplus - nu - a3
-        Zplus = Nemo.one(basering(P))
+        Zplus = Nemo.one(base_ring(P))
 	    return EllipticPoint(Xplus, Yplus, Zplus, E)
     end
 end

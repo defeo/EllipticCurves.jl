@@ -17,7 +17,7 @@ immutable MontgomeryCurve{T<:Nemo.RingElem} <: AbstractWeierstrass{T}
     B::T
 end
 
-function basering(E::MontgomeryCurve)
+function base_ring(E::MontgomeryCurve)
 	return Nemo.parent(E.A)
 end
 
@@ -26,7 +26,7 @@ Get a description of a Montgomery curve.
 """
 function show{T}(io::IO, E::MontgomeryCurve{T})
     print(io, "Elliptic Curve  $(E.B) y² = x³ + $(E.A) x² + x  over ")
-    show(io, basering(E))
+    show(io, base_ring(E))
 end
 
 """
@@ -34,7 +34,7 @@ Get the a-invariants of a Montgomery Curve.
 """
 
 function a_invariants{T}(E::MontgomeryCurve{T})
-	R = basering(E)
+	R = base_ring(E)
 	zero = Nemo.zero(R)
 	return (zero, E.A, zero, E.B, zero)
 end
@@ -150,7 +150,7 @@ isfixedtorsion(P::XonlyPoint) = Nemo.iszero(P.X)
 """
 Get the x-only point at infinity on a Montgomery curve.
 """
-function infinity(E::MontgomeryCurve)
+function xinfinity(E::MontgomeryCurve)
     K = Nemo.parent(E.A)
     zero = Nemo.zero(K)
     return XonlyPoint(zero, zero, E)

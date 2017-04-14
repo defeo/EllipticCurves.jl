@@ -3,7 +3,7 @@ module Weierstrass
 
 import Nemo
 import Base.show
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, basecurve, Maps.ExplicitMap, Maps.Eval, Maps.Isogeny, Points.EllipticPoint, Points.basering, Points.normalize!, Points.isinfinity
+import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, basecurve, Maps.ExplicitMap, Maps.Eval, Maps.Isogeny, Points.EllipticPoint, Points.base_ring, Points.normalize!, Points.isinfinity
 
 
 
@@ -22,7 +22,7 @@ immutable WeierstrassCurve{T} <: AbstractWeierstrass{T}
     a6::T
 end
 
-function basering{T}(E::WeierstrassCurve{T})
+function base_ring(E::WeierstrassCurve)
     return Nemo.parent(E.a1)
 end
 
@@ -34,7 +34,7 @@ immutable ShortWeierstrassCurve{T} <: AbstractWeierstrass{T}
     b::T
 end
 
-function basering{T}(E::ShortWeierstrassCurve{T})
+function base_ring(E::ShortWeierstrassCurve)
     return Nemo.parent(E.a)
 end
 
@@ -43,9 +43,9 @@ Get a description of an elliptic curve in long Weierstrass form.
 
 Shows an explicit equation and the base ring.
 """
-function show{T}(io::IO, E::WeierstrassCurve{T})
+function show(io::IO, E::WeierstrassCurve)
     print(io, "Elliptic Curve in long Weierstrass form y² + $(E.a1) xy + $(E.a3) y = x³ + $(E.a2) x² + $(E.a4) x + $(E.a6)  over ")
-    show(io, basering(E))
+    show(io, base_ring(E))
 end
 
 
@@ -55,9 +55,9 @@ Get a description of an elliptic curve in short Weierstrass form.
 
 Shows an explicit equation and the base ring.
 """
-function show{T}(io::IO, E::ShortWeierstrassCurve{T})
+function show(io::IO, E::ShortWeierstrassCurve)
     print(io, "Elliptic Curve in short Weierstrass form y² = x³ + $(E.a) x + $(E.b)  over ")
-    show(io, basering(E))
+    show(io, base_ring(E))
 end
 
 
@@ -72,7 +72,7 @@ Get the a-invariants (a1, a2, a3, a4, a6) of an elliptic curve in long Weierstra
 
 Returns a tuple of five elements in the base ring.
 """
-function a_invariants{T}(E::WeierstrassCurve{T})
+function a_invariants(E::WeierstrassCurve)
     return (E.a1, E.a2, E.a3, E.a4, E.a6)
 end
 
@@ -83,8 +83,8 @@ Get the a-invariants (a1, a2, a3, a4, a6) of an elliptic curve in short Weierstr
 
 Returns a tuple of five elements in the base ring, the first three being zeroes.
 """
-function a_invariants{T}(E::ShortWeierstrassCurve{T})
-    zero = Nemo.zero(basering(E))
+function a_invariants(E::ShortWeierstrassCurve)
+    zero = Nemo.zero(base_ring(E))
     return (zero, zero, zero, E.a, E.b)
 end
 
@@ -95,7 +95,7 @@ Get the b-invariants (b2, b4, b6, b8) of an elliptic curve in Weierstrass form.
 
 Returns a tuple of four elements in the base ring.
 """
-function b_invariants{T}(E::AbstractWeierstrass{T})
+function b_invariants(E::AbstractWeierstrass)
     a1, a2, a3, a4, a6 = a_invariants(E)
     return (a1*a1 + 4*a2,
              a1*a3 + 2*a4,
@@ -110,7 +110,7 @@ Get the c-invariants (c4, c6) of an elliptic curve in Weierstrass form.
 
 Returns a tuple of two elements in the base ring.
 """
-function c_invariants{T}(E::AbstractWeierstrass{T})
+function c_invariants(E::AbstractWeierstrass)
     b2, b4, b6, b8 = b_invariants(E)
     return (b2^2 - 24*b4, -b2^3 + 36*b2*b4 - 216*b6)
 end
@@ -123,11 +123,17 @@ Get the discriminant of an elliptic curve in long Weierstrass form.
 
 Returns an element in the base ring.
 """
-function discriminant{T}(E::AbstractWeierstrass{T})
+function discriminant(E::AbstractWeierstrass)
     b2, b4, b6, b8 = b_invariants(E)
     return -b2^2*b8 - 8*b4^3 - 27*b6^2 + 9*b2*b4*b6
 end
 
+"""
+Check if a given instance of AbstractWeierstrass is indeed a nonsingular curve.
+"""
+function isvalid(E::AbstractWeierstrass)
+	return !Nemo.iszero(discriminant(E)) #isunit ?
+end
 
 
 """
@@ -135,7 +141,7 @@ Get the discriminant of an elliptic curve in short Weierstrass form.
 
 Returns an element in the base ring.
 """
-function discriminant{T}(E::ShortWeierstrassCurve{T})
+function discriminant(E::ShortWeierstrassCurve)
     return -16*(4*(E.a)^3 + 27*(E.b)^2)
 end
 
@@ -178,8 +184,8 @@ Get an elliptic curve in long Weierstrass form from an elliptic curve in short W
 
 Returns an elliptic curve in long Weierstrass form with the same equation, and two maps which are the canonical isomorphisms between the curves.
 """
-function tolongWeierstrass{T}(E::ShortWeierstrassCurve{T})
-	zero = Nemo.zero(basering(E))
+function tolongWeierstrass(E::ShortWeierstrassCurve)
+	zero = Nemo.zero(base_ring(E))
 	E2 = WeierstrassCurve(zero, zero, zero, E.a, E.b)
 	phi1 = ExplicitMap(E, E2,
 		function(P::EllipticPoint)
@@ -199,7 +205,7 @@ This assumes 2 and 3 are invertible in the base ring.
 
 Returns an elliptic curve in short Weierstrass form, and two explicit maps giving the change of variables.
 """
-function toshortWeierstrass{T}(E::WeierstrassCurve{T})
+function toshortWeierstrass(E::WeierstrassCurve)
 	b2, _, _, _ = b_invariants(E)
 	c4, c6 = c_invariants(E)
 	E2 = ShortWeierstrassCurve(-27 * c4, -54 * c6)
@@ -246,7 +252,7 @@ The input is not checked.
 """
 function subgrouppoly{T<:Nemo.FieldElem, form}(Q::EllipticPoint{T, form}, l::Nemo.Integer)
 	normalize!(Q)
-	K = basering(Q)
+	K = base_ring(Q)
 	R, x = PolynomialRing(K, "x")
 	poly = Nemo.one(R)
 	point = Q
@@ -302,7 +308,7 @@ This isogeny is separable and normalized.
 """
 
 function Isogeny{T}(E::ShortWeierstrassCurve{T}, degree::Nemo.Integer, jprime::T)
-	K = basering(E)
+	K = base_ring(E)
 	Phi_l = modularpoly(degree)
 	R, x = PolynomialRing(K, "x")
 	Phi_l = R(Phi_l)
