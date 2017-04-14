@@ -5,7 +5,7 @@ import Nemo: base_ring, discriminant
 
 import Base: show, normalize!, isvalid, ==
 
-export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, base_curve, domain, image, Eval, base_ring
+export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, base_curve, Eval, base_ring, a_invariants, areequal, EllipticPoint, base_ring, isinfinity, normalized, areequal, infinity, minus, addgeneric, addequalx, plus, isvalid, ExplicitMap, Isogeny, Eval, WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass, MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, xdouble, xadd, xladder, times
 
 ######################################################################
 # Abstract types
@@ -57,6 +57,9 @@ end
 function areequal(P::ProjectivePoint, Q::ProjectivePoint)
 end
 
+function ispoint{T}(a::T, b::T, c::T, E::EllipticCurve{T})
+end
+
 ######################################################################
 # Points on elliptic curves
 ######################################################################
@@ -92,12 +95,6 @@ include("montgomery.jl")
 
 using .Montgomery
 
-
-######################################################################
-# Tests
-######################################################################
-
-include("../test/runtests.jl")
 
 
 end # module

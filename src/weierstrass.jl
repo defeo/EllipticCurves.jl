@@ -3,9 +3,9 @@ module Weierstrass
 
 import Nemo
 
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Eval, Isogeny, EllipticPoint, base_ring, normalize!, isinfinity, isvalid, a_invariants, show, ==, discriminant
+import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Eval, Isogeny, EllipticPoint, base_ring, normalize!, isinfinity, isvalid, a_invariants, show, ==, discriminant, ispoint
 
-export WeierstrassCurve, base_ring, ShortWeierstrassCurve, show, a_invariants, b_invariants, c_invariants, discriminant, j_invariant, tolongWeierstrass, toshortWeierstrass, Isogeny
+export WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass
 
 ######################################################################
 # Basic methods
@@ -173,8 +173,14 @@ function j_invariant{T<:Nemo.FieldElem}(E::ShortWeierstrassCurve{T})
     return -1728 * (4 * (E.a))^3 // disc
 end
 
+"""
+Decide if a triple satisfies the equation of the curve.
+"""
 
-
+function ispoint{T}(x::T, y::T, z::T, E::AbstractWeierstrass{T})
+	a1, a2, a3, a4, a6 = a_invariants(E)
+	return z * y^2 + a1 * x * y * z + a3 * y * z^2 == x^3 + a2 * x^2 * z + a4 * x * z^2 + a6 * z^3
+end
 
 
 ######################################################################

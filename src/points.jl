@@ -2,7 +2,7 @@ module Points
 
 import Nemo
 
-import ..EllipticCurves: EllipticCurve, ProjectivePoint, AbstractWeierstrass, a_invariants, show, normalize!, isvalid, ==, base_ring, areequal
+import ..EllipticCurves: EllipticCurve, ProjectivePoint, AbstractWeierstrass, a_invariants, show, normalize!, isvalid, ==, base_ring, areequal, ispoint
 
 export EllipticPoint, base_ring, isinfinity, normalized, areequal, infinity, minus, addgeneric, addequalx, plus, isvalid
 
@@ -19,7 +19,7 @@ type EllipticPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
 	X::T
 	Y::T
 	Z::T
-	curve::AbstractWeierstrass{T}
+	curve::EllipticCurve{T}
 end
 
 function base_ring(P::EllipticPoint)
@@ -108,13 +108,10 @@ Check if a given elliptic point on a Weierstrass curve is valid.
 function isvalid(P::EllipticPoint)
 	E = P.curve
 	R = base_ring(E)
-	a1, a2, a3, a4, a6 = a_invariants(E)
 	if P.X == P.Y == P.Z == Nemo.zero(R)
 		return false
-	elseif (P.Z * P.Y ^2 + a1 * P.X * P.Y * P.Z + a3 * P.Y * P.Z ^2 != P.X ^3 + a2 * P.X ^2 * P.Z + a4 * P.X * P.Z ^2 + a6 * P.Z^3)
-		return false
 	else
-		return true
+		return ispoint(P.X, P.Y, P.Z, E)
 	end
 end
 

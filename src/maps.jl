@@ -4,7 +4,7 @@ import Nemo
 
 import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, EllipticPoint, show
 
-export ExplicitMap, Isogeny, Eval, show
+export ExplicitMap, Isogeny, Eval
 
 ######################################################################
 # Concrete types for maps

@@ -2,7 +2,7 @@ module Montgomery
 
 import Nemo
 
-import ..EllipticCurves: EllipticCurve, ProjectivePoint, WeierstrassCurve, EllipticPoint, AbstractWeierstrass, ExplicitMap, base_ring, normalize!, isinfinity, a_invariants, normalized, tolongWeierstrass, show, ==, areequal
+import ..EllipticCurves: EllipticCurve, ProjectivePoint, WeierstrassCurve, EllipticPoint, AbstractWeierstrass, ExplicitMap, base_ring, normalize!, isinfinity, normalized, tolongWeierstrass, show, ==, areequal, j_invariant, ispoint, isvalid
 
 export MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, xdouble, xadd, xladder, times
 
@@ -14,7 +14,7 @@ export MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsi
 """
 Concrete type for (twisted) Montgomery curves.
 """
-immutable MontgomeryCurve{T<:Nemo.RingElem} <: AbstractWeierstrass{T}
+immutable MontgomeryCurve{T<:Nemo.RingElem} <: EllipticCurve{T}
     A::T
     B::T
 end
@@ -32,13 +32,21 @@ function show{T}(io::IO, E::MontgomeryCurve{T})
 end
 
 """
-Get the a-invariants of a Montgomery Curve.
+Get the j-invariant of a Montgomery Curve.
 """
 
-function a_invariants{T}(E::MontgomeryCurve{T})
-	R = base_ring(E)
-	zero = Nemo.zero(R)
-	return (zero, E.A, zero, E.B, zero)
+function j_invariant{T<:Nemo.FieldElem}(E::MontgomeryCurve{T})
+	K = base_ring(E)
+	zero = Nemo.zero(K)
+	return j_invariant(WeierstrassCurve(zero, E.A, zero, Nemo.one(K), zero))
+end
+
+function ispoint{T}(x::T, y::T, z::T, E::MontgomeryCurve{T})
+	return (E.B) * y^2 * z == x^3 + (E.A) * x^2 * z + x * z^2
+end
+
+function isvalid(E::MontgomeryCurve)
+	return (E.B != 0) & (E.A != 0) & (E.A != 2) & (E.A != -2)
 end
 
 
@@ -247,11 +255,11 @@ end
 """
 Montgomery ladder to compute scalar multiplications of generic x-only points, using the least possible field operations.
 """
-function xladder(k::Nemo.Integer, P::XonlyPoint)
+function xladder(k::Nemo.fmpz, P::XonlyPoint)
 	normalize!(P)
     x0, x1 = P, xdouble(P)
     for b in bin(k)[2:end]
-        if (b == 0)
+        if (b == '0')
         	x0, x1 = xdouble(x0), xadd(x0, x1, P)
         else
         	x0, x1 = xadd(x0, x1, P), xdouble(x1)
@@ -263,18 +271,18 @@ end
 """
 Top-level function for scalar multiplications with x-only points on Montgomery curves
 """
-function times(k::Nemo.Integer, P::XonlyPoint)
+function times(k::Nemo.fmpz, P::XonlyPoint)
 	E = P.curve
-	if k==0
-		return infinity(E)
+	if k == 0
+		return xinfinity(E)
 	elseif k<0
 		return times(-k, P)
 	else
 		if isinfinity(P)
-			return infinity(E)
+			return xinfinity(E)
 		elseif isfixedtorsion(P)
 			if k % 2 == 0
-				return infinity(E)
+				return xinfinity(E)
 			else
 				return fixedtorsion(E)
 			end

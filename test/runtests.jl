@@ -150,7 +150,6 @@ P1 = EllipticPoint(QQ(1), QQ(3), QQ(1), E)
 P0 = EllipticPoint(QQ(0), QQ(0), QQ(1), E)
 
 @test base_ring(E) == QQ
-@test a_invariants(E) == (0, 7, 0, 1, 0)
 @test j_invariant(E) == 24918016//45
 
 @test isvalid(P1) & isvalid(P2)
@@ -162,10 +161,8 @@ P0 = EllipticPoint(QQ(0), QQ(0), QQ(1), E)
 
 Z = Nemo.ZZ
 E2, _, _ = tolongWeierstrass(E)
-a1, a2, a3, a4, a6 = a_invariants(E)
 
-@test E2 == WeierstrassCurve(a1, a2, a3, a4, a6)
-
+@test a_invariants(E2) == (0, 7, 0, 1, 0)
 
 #Testing x-only arithmetic
 
@@ -177,16 +174,20 @@ xinf = xinfinity(E)
 @test isfixedtorsion(xP0)
 @test !isfixedtorsion(xP1)
 
+#=
+No addition for complete projective points on Montgomery curves yet
 @test plus(P0, P0) == infinity(E)
 @test plus(P1, P1) == P0
+=#
 
 @test areequal(xdouble(xP0), xinf)
 @test areequal(xdouble(xP1), xP0)
 @test areequal(xdouble(xinf), xinf)
 
-#=
 
-@test areequal(xadd(xP1, xP0), xP1)
+
+@test areequal(xadd(xP1, xP0, xP1), xP1)
+
 
 @test areequal(times(Z(0), xP1), xinfinity(E))
 @test areequal(times(Z(1), xP1), xP1)
@@ -198,5 +199,4 @@ xinf = xinfinity(E)
 
 @test areequal(xladder(Z(8), xP1), xinfinity(E))
 
-=#
 
