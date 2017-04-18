@@ -5,7 +5,7 @@ import Nemo
 
 import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Eval, Isogeny, EllipticPoint, base_ring, normalize!, isinfinity, isvalid, a_invariants, show, ==, discriminant, ispoint
 
-export WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass
+export WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass, divisionpolynomial
 
 ######################################################################
 # Basic methods
@@ -183,6 +183,7 @@ function ispoint{T}(x::T, y::T, z::T, E::AbstractWeierstrass{T})
 end
 
 
+
 ######################################################################
 # Model changes
 ######################################################################
@@ -235,6 +236,73 @@ function toshortWeierstrass(E::WeierstrassCurve)
 	return E2, phi1, phi2
 end
 
+
+######################################################################
+# Division polynomials for short Weierstrass curves
+######################################################################
+
+
+
+"""
+Internal function to compute the mth division polynomial of an elliptic curve in short Weierstrass form, using the well-known induction formulas. If the index is even, the usual factor 2*y is dropped.
+"""
+function _divpoly{T}(E::ShortWeierstrassCurve{T}, m::Nemo.Integer, R::Nemo.PolyRing{T})
+	A, B = E.a, E.b
+	x = Nemo.gen(R)
+	if m == 1
+		return R(1)
+	elseif m == 2 
+		return R(1)
+	elseif m == 3
+		return 3 * x^4 + 6 * A * x^2 + 12 * B * x - A^2
+	elseif m == 4
+		return 2 * (x^6 + 5 * A * x^4 + 20 * B * x^3 - 5 * A^2 * x^2 - 4 * A * B * x - 8 * B^2 - A^3)
+	elseif isodd(m)
+		k = div(m - 1, 2)
+		m1 = _divpoly(E, k - 1, R)
+		eq = _divpoly(E, k, R)
+		p1 = _divpoly(E, k+1, R)
+		p2 = _divpoly(E, k+2, R)
+		if iseven(k)
+			return 16 * (x^3 + A * x + B)^2 * p2 * eq^3 - m1 * p1^3
+		else #k is odd
+			return p2 * eq^3 - 16 * (x^3 + A * x + B)^2 * m1 * p1^3
+		end
+	else  #m is even
+		k = div(m, 2)
+		m2 = _divpoly(E, k-2, R)
+		m1 = _divpoly(E, k - 1, R)
+		eq = _divpoly(E, k, R)
+		p1 = _divpoly(E, k+1, R)
+		p2 = _divpoly(E, k+2, R)
+		if iseven(k)
+			return eq * (p2 * m1^2 - m2 * p1^2)
+		else #k is odd
+			return eq * (p2 * m1^2 - m2 * p1^2) #same formula but the 4y² factor is placed differently
+		end
+	end
+end
+
+"""
+Top-level function to compute the division polynomial of an elliptic curve in short Weierstrass form.
+
+The result is exact when the index is odd; when m in even, returns an univariate polynomial in x whose roots are the abscissae of the m-torsion points (with extra ramification on the 2-torsion points).
+"""
+
+function divisionpolynomial(E::ShortWeierstrassCurve, m::Nemo.Integer)
+	m <= 0 && throw(ArgumentError("m must be positive"))
+	K = base_ring(E)
+	R, x = Nemo.PolynomialRing(K, "x")
+	poly = _divpoly(E, m, R)
+	if isodd(m)
+		return poly
+	else
+		return 2 * (x^3 + (E.a) * x + (E.b)) * poly
+	end
+end
+
+
+
 ######################################################################
 # Modular polynomials
 ######################################################################
@@ -259,13 +327,13 @@ Get the polynomial associated to an l-torsion rational point, l being an odd pri
 
 The input is not checked.
 """
-function subgrouppoly{T<:Nemo.FieldElem}(Q::EllipticPoint{T}, l::Nemo.Integer)
+function _subgrouppoly{T<:Nemo.FieldElem}(Q::EllipticPoint{T}, l::Nemo.Integer)
 	normalize!(Q)
 	K = base_ring(Q)
 	R, x = PolynomialRing(K, "x")
 	poly = Nemo.one(R)
 	point = Q
-	for k = 1 : ((l-1) // 2)
+	for k = 1 : div(l-1, 2)
 		poly *= (x - point.X)
 		point += Q
 	end
@@ -275,45 +343,45 @@ end
 """
 Build an isogeny given its domain and the polynomial defining its kernel.
 
-This isogeny is separable and normalized.
+The kernel polynomial is assumed to be monic and separable.
 """
 function Isogeny{T}(E::WeierstrassCurve{T}, poly::Nemo.PolyElem{T})
 	a1, a2, a3, a4, a6 = a_invariants(E)
     b2, b4, b6, b8 = b_invariants(E)
-    n = degree(poly)
+    n = Nemo.degree(poly)
     
-    s1 = - poly[n - 1]
-    s2 = poly[n - 2]
-    s3 = - poly[n - 3]
+    s1 = - Nemo.coeff(poly, n - 1)
+	s2 = Nemo.coeff(poly, n - 2)
+	s3 = - Nemo.coeff(poly, n - 3)
     t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
     w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
     
     E1 = WeierstrassCurve(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
     
-    return Isogeny(E, poly, E1)
+    return Isogeny(E, 2 * n + 1, poly, E1)
 end
 
 
 function Isogeny{T}(E::ShortWeierstrassCurve{T}, poly::Nemo.PolyElem{T})
 	a1, a2, a3, a4, a6 = a_invariants(E)
 	b2, b4, b6, b8 = b_invariants(E)
-	n = degree(poly)
+	n = Nemo.degree(poly)
 	
-	s1 = - poly[n - 1]
-	s2 = poly[n - 2]
-	s3 = - poly[n - 3]
+	s1 = - Nemo.coeff(poly, n - 1)
+	s2 = Nemo.coeff(poly, n - 2)
+	s3 = - Nemo.coeff(poly, n - 3)
 	t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
 	w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
 	
 	E1 = ShortWeierstrassCurve(a4 - 5 * t, a6 - b2 * t - 7 * w)
 	
-	return Isogeny(E, poly, E1)
+	return Isogeny(E, 2 * n + 1, poly, E1)
 end
 
 """
-Build an isogeny given an elliptic curve in short Weierstrass form, the j-invariant of the targetted elliptic curve, and the degree.
+Build an isogeny given an elliptic curve in short Weierstrass form, the j-invariant of the targetted elliptic curve, and the degree, assuming it exists.
 
-This isogeny is separable and normalized.
+Returns a normalized isogeny
 """
 
 function Isogeny{T}(E::ShortWeierstrassCurve{T}, degree::Nemo.Integer, jprime::T)
@@ -337,11 +405,33 @@ function Isogeny{T}(E::ShortWeierstrassCurve{T}, degree::Nemo.Integer, jprime::T
 	
 	poly = kernelpoly(E, Eprime, degree)
 	
-	return Isogeny(E, poly, Eprime)
+	return Isogeny(E, degree, poly, Eprime)
 end
 
 
-	
+"""
+Build an isogeny given an odd integer l and a rational torsion point of this order. The input is not checked.
+"""
+
+function Isogeny{T<:Nemo.FieldElem}(E::WeierstrassCurve{T}, Q::EllipticPoint{T}, l::Nemo.Integer)
+	poly = _subgrouppoly(Q, l)
+	return Isogeny(E, poly)
+end
+
+"""
+Build an isogeny of given degree between two curves, assuming a normalized separable isogeny of this degree exists.
+"""
+
+function Isogeny{T<:Nemo.FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
+	degree::Nemo.Integer)
+	poly = BMSS.kernelpoly(E1, E2, degree)
+	return Isogeny(E1, degree, poly, E2)
+end
+
+
+
+
+
 end # module
 
 

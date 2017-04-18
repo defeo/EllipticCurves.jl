@@ -1,11 +1,11 @@
 module EllipticCurves
 
 import Nemo
-import Nemo: base_ring, discriminant
+import Nemo: base_ring, discriminant, degree
 
 import Base: show, normalize!, isvalid, ==
 
-export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, base_curve, Eval, base_ring, a_invariants, areequal, EllipticPoint, base_ring, isinfinity, normalized, areequal, infinity, minus, addgeneric, addequalx, plus, isvalid, ExplicitMap, Isogeny, Eval, WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass, MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, xdouble, xadd, xladder, times
+export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, base_curve, Eval, base_ring, a_invariants, areequal, EllipticPoint, base_ring, isinfinity, normalized, infinity, minus, plus, isvalid, ExplicitMap, Isogeny, WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass, MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, times, codomain, domain, kernel, divisionpolynomial
 
 ######################################################################
 # Abstract types

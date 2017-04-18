@@ -2,9 +2,9 @@ module Maps
 
 import Nemo
 
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, EllipticPoint, show
+import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, EllipticPoint, show, degree
 
-export ExplicitMap, Isogeny, Eval
+export ExplicitMap, Isogeny, Eval, domain, codomain, kernel
 
 ######################################################################
 # Concrete types for maps
@@ -21,13 +21,38 @@ immutable ExplicitMap{T} <: Map{T}
 	map::Function
 end
 
+function domain(phi::ExplicitMap)
+	return phi.domain
+end
+
+function codomain(phi::ExplicitMap)
+	return phi.image
+end
+
 """
 Concrete type for isogenies between Weierstrass or Montgomery elliptic curves. It is assumed that the kernel may be descibed by an univariate polynomial.
 """
 immutable Isogeny{T} <: Map{T}
 	domain::EllipticCurve{T}
+	degree::Nemo.Integer
 	kernel::Nemo.PolyElem{T}
 	image::EllipticCurve{T}
+end
+
+function domain(phi::Isogeny)
+	return phi.domain
+end
+
+function codomain(phi::Isogeny)
+	return phi.image
+end
+
+function kernel(phi::Isogeny)
+	return phi.kernel
+end
+
+function degree(phi::Isogeny)
+	return phi.degree
 end
 
 ######################################################################
@@ -52,6 +77,17 @@ function show(io::IO, phi::ExplicitMap)
 	show(io, phi.image)
 end
 
+"""
+Shows a description of an isogeny between elliptic curves.
+"""
+function show(io::IO, phi::Isogeny)
+	print("Isogeny of degree ")
+	show(phi.degree)
+	print(" between ")
+	show(io, phi.domain)
+	print(" and ")
+	show(io, phi.image)
+end
 
 
 end # module

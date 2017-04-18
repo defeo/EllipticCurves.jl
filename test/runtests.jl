@@ -75,16 +75,6 @@ E3, phi, psi = tolongWeierstrass(E)
 @test Eval(phi, P1) == P2
 @test Eval(psi, P2) == P1
 
-E3, phi, psi = toshortWeierstrass(E2)
-
-#toshortWeierstrass is not the same curve
-
-#=
-@test E1 == E3
-@test Eval(phi, P2) == P1
-@test Eval(psi, P1) == P2
-=#
-
 E2 = WeierstrassCurve(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
 E3, _, _ = toshortWeierstrass(E2)
 
@@ -94,6 +84,25 @@ E3, _, _ = toshortWeierstrass(E2)
 
 #Testing isogenies between Weierstrass curves
 
+E = ShortWeierstrassCurve(QQ(1), QQ(2))
+
+P1 = divisionpolynomial(E, 1)
+P7 = divisionpolynomial(E, 7)
+
+@test P1 == 1
+@test degree(P7) == (7^2 - 1) // 2
+
+Q = 1//lead(P7) * P7
+phi = Isogeny(E, Q)
+Eprime = codomain(phi)
+d = degree(phi)
+
+@test d == 7^2
+
+psi = Isogeny(E, Eprime, d)
+
+
+@test kernel(psi) == Q
 
 ######################################################################
 # Testing points.jl
