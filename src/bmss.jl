@@ -2,7 +2,7 @@ module BMSS
 
 import Nemo
 
-import Nemo: Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, parent, gen, base_ring, shift_left, shift_right, degree, coeff, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!
+import Nemo: Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, parent, gen, base_ring, shift_left, shift_right, degree, coeff, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!, sqrt
 
 import ..Weierstrass: EllipticCurve, a_invariants, AbstractWeierstrass, divisionpolynomial
 
@@ -111,6 +111,11 @@ function compose{T}(F::AbsSeriesElem{T}, G::AbsSeriesElem{T})
 	return convert(R, comp)
 end
 
+"""
+Compute the square root of an absolute power series of constant term one.
+"""
+function sqrt(F::AbsSeriesElem)
+end
 
 ######################################################################
 # Berlekamp-Massey
@@ -180,8 +185,8 @@ function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::Abstrac
 		p = 0
 	end
 
-	(p > 0 & p <= 4*deg-1) &&
-		throw(DivideError("BMSS algorithm only works for characteristic 0 or greater than 4*deg - 1."))
+	((p > 0) & (p <= 4*deg-1)) &&
+		throw(ArgumentError("BMSS algorithm only works for characteristic 0 or greater than 4*deg - 1."))
 
 	#Check if the returned polynomial is correct ?
 
@@ -193,9 +198,12 @@ function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::Abstrac
 
 	#We need precision 2*deg + 1
 	R, x = PowerSeriesRing(K, 2*deg +1, "x", model=:capped_absolute)
-
-    G = a6 * x^3 + a4 * x^2 + a2 * x + 1
-    H = b6 * x^3 + b4 * x^2 + b2 * x + 1
+	print(typeof(a2))
+	print(typeof(a4))
+	print(typeof(a6))
+	print(typeof(x))
+    G = a6 * x^3 + a4 * x^2 + a2 * x + one(R)
+    H = b6 * x^3 + b4 * x^2 + b2 * x + one(R)
 
     # solve the differential equation
     # G(x) T'^2 = (T/x) H(T)
@@ -267,7 +275,7 @@ function _BMSS_diffeq{T<:FieldElem}(G::AbsSeriesElem{T}, H::AbsSeriesElem{T}, pr
 	K = base_ring(R)
 	#We hope no one will use this with function fields...
 	if isa(K, Nemo.FinField)
-    	p = characteristic(base_ring(R))
+    	p = Nemo.characteristic(base_ring(R))
 	else
 		p = 0
 	end
