@@ -2,9 +2,9 @@ module Montgomery
 
 import Nemo
 
-import ..EllipticCurves: EllipticCurve, ProjectivePoint, WeierstrassCurve, EllipticPoint, AbstractWeierstrass, ExplicitMap, base_ring, normalize!, isinfinity, normalized, tolongWeierstrass, show, ==, areequal, j_invariant, ispoint, isvalid
+import ..EllipticCurves: EllipticCurve, ProjectivePoint, WeierstrassCurve, EllipticPoint, AbstractWeierstrass, ExplicitMap, base_ring, normalize!, isinfinity, normalized, tolongWeierstrass, show, ==, areequal, j_invariant, ispoint, isvalid, times
 
-export MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, xdouble, xadd, xladder, times
+export MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, xdouble, xadd, xladder
 
 
 ######################################################################
@@ -255,7 +255,7 @@ end
 """
 Montgomery ladder to compute scalar multiplications of generic x-only points, using the least possible field operations.
 """
-function xladder(k::Nemo.fmpz, P::XonlyPoint)
+function xladder(k::Nemo.Integer, P::XonlyPoint)
 	normalize!(P)
     x0, x1 = P, xdouble(P)
     for b in bin(k)[2:end]
@@ -271,7 +271,7 @@ end
 """
 Top-level function for scalar multiplications with x-only points on Montgomery curves
 """
-function times(k::Nemo.fmpz, P::XonlyPoint)
+function times(k::Nemo.Integer, P::XonlyPoint)
 	E = P.curve
 	if k == 0
 		return xinfinity(E)

@@ -4,17 +4,15 @@ using EllipticCurves
 
 using Base.Test
 
-# write your own tests here
-@test 1 != 2
-
 
 ######################################################################
 # Testing weierstrass.jl
 ######################################################################
 
 
-#Example is taken from Silverman 1 p.59. Testing basic methods on projective points
+#Example is taken from Silverman 1 p.59.
 
+print("Testing basic methods of elliptic curves and projective points...\n")
 
 E = ShortWeierstrassCurve(QQ(0), QQ(17))
 Eprime = ShortWeierstrassCurve(QQ(0), QQ(16))
@@ -43,6 +41,8 @@ P2 = infinity(E)
 
 
 #Testing invariants; values are given by Sage
+
+print("Testing invariants and model changes...\n")
 
 
 @test a_invariants(E) == (QQ(0), QQ(0), QQ(0), QQ(0), QQ(17))
@@ -84,6 +84,8 @@ E3, _, _ = toshortWeierstrass(E2)
 
 #Testing isogenies between Weierstrass curves over the rationals
 
+print("Testing isogenies...\n")
+
 E = ShortWeierstrassCurve(QQ(1), QQ(2))
 
 P1 = divisionpolynomial(E, 1)
@@ -103,7 +105,7 @@ psi = Isogeny(E, Eprime, d)
 
 @test kernel(psi) == Q
 
-#Over finite fields
+#Over small finite fields
 
 F, x = FiniteField(233, 1, "x")
 E = ShortWeierstrassCurve(F(1), F(2))
@@ -123,8 +125,31 @@ d = degree(phi)
 
 psi = Isogeny(E, Eprime, d)
 
+#Over large finite fields
+
 @test kernel(psi) == Q
 
+p = ZZ(3273390607896141870013189696827599152216642046043064789483291368096133796404674554883270092325904157150886684127560071009217256545885393053328527589431)
+
+F, x = FiniteField(p, 1, "x")
+E = ShortWeierstrassCurve(F(1), F(2))
+
+P1 = divisionpolynomial(E, 1)
+P7 = divisionpolynomial(E, 7)
+
+@test P1 == 1
+@test degree(P7) == (7^2 - 1) // 2
+
+Q = 1//lead(P7) * P7
+phi = Isogeny(E, Q)
+Eprime = codomain(phi)
+d = degree(phi)
+
+@test d == 7^2
+
+psi = Isogeny(E, Eprime, d)
+
+@test kernel(psi) == Q
 
 ######################################################################
 # Testing points.jl
@@ -132,6 +157,8 @@ psi = Isogeny(E, Eprime, d)
 
 
 #Addition laws for points on Weierstrass curves. Example is from Silverman 1 p.59
+
+print("Testing addition laws...\n")
 
 
 E = ShortWeierstrassCurve(QQ(0), QQ(17))
@@ -171,7 +198,7 @@ mP3 = minus(P3)
 # Testing montgomery.jl
 ######################################################################
 
-
+print("Testing Montgomery curves...\n")
 
 #Testing basic functions
 
@@ -220,14 +247,14 @@ No addition for complete projective points on Montgomery curves yet
 @test areequal(xadd(xP1, xP0, xP1), xP1)
 
 
-@test areequal(times(Z(0), xP1), xinfinity(E))
-@test areequal(times(Z(1), xP1), xP1)
-@test areequal(times(Z(2), xP1), xP0)
-@test areequal(times(Z(1), xP0), xP0)
-@test areequal(times(Z(2), xP0), xinfinity(E))
-@test areequal(times(Z(45), xinfinity(E)), xinfinity(E))
-@test areequal(times(Z(4), xP1), xinfinity(E))
+@test areequal(times(0, xP1), xinfinity(E))
+@test areequal(times(1, xP1), xP1)
+@test areequal(times(2, xP1), xP0)
+@test areequal(times(1, xP0), xP0)
+@test areequal(times(2, xP0), xinfinity(E))
+@test areequal(times(45, xinfinity(E)), xinfinity(E))
+@test areequal(times(4, xP1), xinfinity(E))
 
-@test areequal(xladder(Z(8), xP1), xinfinity(E))
+@test areequal(xladder(8, xP1), xinfinity(E))
 
 

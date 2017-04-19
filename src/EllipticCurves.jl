@@ -5,7 +5,17 @@ import Nemo: base_ring, discriminant, degree
 
 import Base: show, normalize!, isvalid, ==
 
-export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, base_curve, Eval, base_ring, a_invariants, areequal, EllipticPoint, base_ring, isinfinity, normalized, infinity, minus, plus, isvalid, ExplicitMap, Isogeny, WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass, MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, times, codomain, domain, kernel, divisionpolynomial
+#Exporting types
+
+export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Isogeny, WeierstrassCurve, ShortWeierstrassCurve, EllipticPoint, MontgomeryCurve, XonlyPoint
+
+#Exporting functions
+
+export Eval, base_curve, base_ring, a_invariants, b_invariants, c_invariants, j_invariant, areequal, isinfinity, normalized, infinity, minus, plus, isvalid, tolongWeierstrass, toshortWeierstrass, xonly, isfixedtorsion, xinfinity, fixedtorsion, times, codomain, domain, kernel, divisionpolynomial
+
+#Functions we may want to turn internal
+
+export xdouble, xadd, addequalx, addgeneric, xladder
 
 ######################################################################
 # Abstract types

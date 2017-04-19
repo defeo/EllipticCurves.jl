@@ -249,38 +249,34 @@ Internal function to compute the mth division polynomial of an elliptic curve in
 function _divpoly{T}(E::ShortWeierstrassCurve{T}, m::Nemo.Integer, R::Nemo.PolyRing{T})
 	A, B = E.a, E.b
 	x = Nemo.gen(R)
-	if m == 1
-		return R(1)
-	elseif m == 2 
-		return R(1)
-	elseif m == 3
-		return 3 * x^4 + 6 * A * x^2 + 12 * B * x - A^2
-	elseif m == 4
-		return 2 * (x^6 + 5 * A * x^4 + 20 * B * x^3 - 5 * A^2 * x^2 - 4 * A * B * x - 8 * B^2 - A^3)
-	elseif isodd(m)
-		k = div(m - 1, 2)
-		m1 = _divpoly(E, k - 1, R)
-		eq = _divpoly(E, k, R)
-		p1 = _divpoly(E, k+1, R)
-		p2 = _divpoly(E, k+2, R)
-		if iseven(k)
-			return 16 * (x^3 + A * x + B)^2 * p2 * eq^3 - m1 * p1^3
-		else #k is odd
-			return p2 * eq^3 - 16 * (x^3 + A * x + B)^2 * m1 * p1^3
-		end
-	else  #m is even
-		k = div(m, 2)
-		m2 = _divpoly(E, k-2, R)
-		m1 = _divpoly(E, k - 1, R)
-		eq = _divpoly(E, k, R)
-		p1 = _divpoly(E, k+1, R)
-		p2 = _divpoly(E, k+2, R)
-		if iseven(k)
-			return eq * (p2 * m1^2 - m2 * p1^2)
-		else #k is odd
-			return eq * (p2 * m1^2 - m2 * p1^2) #same formula but the 4y² factor is placed differently
+	Divpols = Dict{Int, Nemo.PolyElem{T}}()
+	Divpols[1] = R(1)
+	Divpols[2] = R(1)
+	Divpols[3] = 3 * x^4 + 6 * A * x^2 + 12 * B * x - A^2
+	Divpols[4] = 2 * (x^6 + 5 * A * x^4 + 20 * B * x^3 - 5 * A^2 * x^2 - 4 * A * B * x - 8 * B^2 - A^3)
+	for d = 5 : m
+ 		if isodd(d)
+			k = div(d - 1, 2)
+			m1 = Divpols[k - 1]
+			eq = Divpols[k]
+			p1 = Divpols[k+1]
+			p2 = Divpols[k+2]
+			if iseven(k)
+				Divpols[d] = 16 * (x^3 + A * x + B)^2 * p2 * eq^3 - m1 * p1^3
+			else #k is odd
+				Divpols[d] = p2 * eq^3 - 16 * (x^3 + A * x + B)^2 * m1 * p1^3
+			end
+		else  #d is even
+			k = div(d, 2)
+			m2 = Divpols[k-2]
+			m1 = Divpols[k - 1]
+			eq = Divpols[k]
+			p1 = Divpols[k+1]
+			p2 = Divpols[k+2]
+			Divpols[d] = eq * (p2 * m1^2 - m2 * p1^2)
 		end
 	end
+	return Divpols[m]
 end
 
 """
@@ -428,7 +424,20 @@ function Isogeny{T<:Nemo.FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeie
 	return Isogeny(E1, degree, poly, E2)
 end
 
+"""
+Compute the scalar multiplication by m on a weierstrass curve as a normalized isogeny.
+"""
+function multiplication_isogeny(E::AbstractWeierstrass, m::Nemo.Integer)
+	return Isogeny(E, divisionpolynomial(E, m))
+end
 
+
+"""
+Compute the scalar multiplication by m on a weierstrass curve as an explicit map.
+"""
+function multiplication_explicit(E::AbstractWeierstrass, m::Nemo.Integer)
+	return ExplicitMap(E, E, P::EllipticPoint -> times(m, P))
+end
 
 
 

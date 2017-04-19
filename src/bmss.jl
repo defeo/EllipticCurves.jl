@@ -111,11 +111,6 @@ function compose{T}(F::AbsSeriesElem{T}, G::AbsSeriesElem{T})
 	return convert(R, comp)
 end
 
-"""
-Compute the square root of an absolute power series of constant term one.
-"""
-function sqrt(F::AbsSeriesElem)
-end
 
 ######################################################################
 # Berlekamp-Massey
@@ -125,7 +120,7 @@ end
 """
 Berlekamp-Massey algorithm to compute the minimal polynomial of a given linearly recurrent sequence. Returns a polynomial.
 
-Since we will use it with polynomials, we represent the sequence as the coefficients of a power series. This may cause problems when the leading coefficient is zero.
+Since we will use it with polynomials, we represent the sequence as the coefficients of a polynomial. This may cause problems when the leading coefficient is zero.
 """
 
 function berlekamp_massey{T<:FieldElem}(a::PolyElem{T})
@@ -138,7 +133,7 @@ function berlekamp_massey{T<:FieldElem}(a::PolyElem{T})
     A = parent(a)
     x = gen(A)
 	
-	#following source code of sage
+	#Extended euclidean algorithm
     fjm2 = a
     fjm1 = x^(2*M)
 	sjm1 = 0
@@ -198,10 +193,6 @@ function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::Abstrac
 
 	#We need precision 2*deg + 1
 	R, x = PowerSeriesRing(K, 2*deg +1, "x", model=:capped_absolute)
-	print(typeof(a2))
-	print(typeof(a4))
-	print(typeof(a6))
-	print(typeof(x))
     G = a6 * x^3 + a4 * x^2 + a2 * x + one(R)
     H = b6 * x^3 + b4 * x^2 + b2 * x + one(R)
 
@@ -289,22 +280,19 @@ function _BMSS_diffeq{T<:FieldElem}(G::AbsSeriesElem{T}, H::AbsSeriesElem{T}, pr
 
     # the precision to which the solution T is known
     d = 1
-	H1 = truncate(H, 1)
-	G1 = truncate(G, 1)
     # 1/(T'^2 G) to precision d ; at the beginning we set T = x * H/G
-    diffT2G = G1 * inv(H1^2)
+    diffT2G = R(1) + Nemo.O(x)
     # Sqrt(G) and Sqrt(1/G) to precision d
-    sqG = sqrt(G1)
-	invsqG = inv(sqG)
-	# all this was not very useful since everything equals one.
+    sqG = R(1) + Nemo.O(x)
+	invsqG = R(1) + Nemo.O(x)
 
-    sol = shift_left(H1 * inv(G1), 1)
+    sol = x + Nemo.O(x^2)
 
     while d < prec-1
         # update diffT, sqG and invsqG to precision d
         # (nothing changes in the first iteration)
         diffT2G = diffT2G * (2 - G * derivative(sol)^2 * diffT2G)
-        sqG = 1//2 * (sqG + G * invsqG * (2 - sqG * invsqG))
+        sqG = inv(K(2)) * (sqG + G * invsqG * (2 - sqG * invsqG))
         invsqG = invsqG * (2 - sqG * invsqG)
 
         # double the current precision
@@ -314,12 +302,12 @@ function _BMSS_diffeq{T<:FieldElem}(G::AbsSeriesElem{T}, H::AbsSeriesElem{T}, pr
         set_prec!(invsqG, d)
         set_prec!(sol, d+1)
 
-        k = (compose(H, sol) * shift_right(sol, 1) - G * derivative(sol)^2) * diffT2G * invsqG
-        # K = 1/2 sqrt(x) integral(k/sqrt(x))
-        K = shift_left( map(k, (i, c) -> c // (2*i+1)), 1)
+        f = (compose(H, sol) * shift_right(sol, 1) - G * derivative(sol)^2) * diffT2G * invsqG
+        # F = 1/2 sqrt(x) integral(k/sqrt(x))
+        F = shift_left( map(f, (i, c) -> c // (2*i+1)), 1)
 
         # update the solution
-        sol += derivative(sol) * sqG * K
+        sol += derivative(sol) * sqG * F
 	end
     return sol
 end
@@ -341,5 +329,6 @@ function kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeiers
 	end
     return evenpart * sqrtoddpart
 end
+
 
 end #module

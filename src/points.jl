@@ -4,7 +4,7 @@ import Nemo
 
 import ..EllipticCurves: EllipticCurve, ProjectivePoint, AbstractWeierstrass, a_invariants, show, normalize!, isvalid, ==, base_ring, areequal, ispoint
 
-export EllipticPoint, base_ring, isinfinity, normalized, areequal, infinity, minus, addgeneric, addequalx, plus, isvalid
+export EllipticPoint, base_ring, isinfinity, normalized, areequal, infinity, minus, addgeneric, addequalx, plus, isvalid, times
 
 ######################################################################
 # Basic methods for projective points
@@ -153,6 +153,17 @@ function addgeneric{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
 end
 
 """
+Get the double of a normalized point.
+"""
+function double(P::EllipticPoint)
+	if isinfinity(P)
+		return infinity(P.curve)
+	else
+		return addequalx(P, P)
+	end
+end
+
+"""
 Get the sum of two normalized projective points on the same long Weierstrass curve, assuming they have equal x-coordinate.
 
 This assumes the base ring is a field.
@@ -192,8 +203,37 @@ function plus{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
     end
 end
 
+"""
+Get a scalar multiple of a point on a Weierstrass curve.
+"""
 
+function times(k::Nemo.Integer, P::EllipticPoint)
+	E = P.curve
+	normalize!(P)
+	if k == 0
+		return infinity(E)
+	elseif k<0
+		return times(-k, minus(P))
+	else
+		if isinfinity(P)
+			return infinity(E)
+		else
+			return ladder(k, P)
+		end
+	end
+end
 
+function ladder(m::Nemo.Integer, P::EllipticPoint)
+	p0 = P
+	for b in bin(m)[2:end]
+        if (b == '0')
+        	p0 = double(p0)
+        else
+        	p0 = plus(P, double(p0))
+        end
+    end
+	return p0
+end
 
 
 end #module
