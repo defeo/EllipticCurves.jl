@@ -22,7 +22,7 @@ This test can fail in positive characteristic.
 function issquare(P::Nemo.PolyElem)
 	d = degree(P)
 	if isodd(d)
-		return false
+		return (false, P)
 	else
 		dP = Nemo.derivative(P)
 		sqrt = Nemo.gcd(dP, P)
@@ -118,22 +118,15 @@ end
 
 
 """
-Berlekamp-Massey algorithm to compute the minimal polynomial of a given linearly recurrent sequence. Returns a polynomial.
-
-Since we will use it with polynomials, we represent the sequence as the coefficients of a polynomial. This may cause problems when the leading coefficient is zero.
+Berlekamp-Massey algorithm to compute the rational reconstruction of a given polynomial of degree 2M - 1 (or 2M - 2) mod X^2M.
 """
 
 function berlekamp_massey{T<:FieldElem}(a::PolyElem{T})
-    
-	#Checking the argument is sane
-    degree(a)%2 == 0 &&
-        throw(ArgumentError("Argument must have odd degree"))
-
-    M = div(degree(a) + 1, 2)
+    M = 1 + div(degree(a), 2)
     A = parent(a)
     x = gen(A)
 	
-	#Extended euclidean algorithm
+	#Extended euclidean algorithm : we stop when the remainder has degree < M
     fjm2 = a
     fjm1 = x^(2*M)
 	sjm1 = 0
@@ -146,9 +139,12 @@ function berlekamp_massey{T<:FieldElem}(a::PolyElem{T})
 		fjm1, fjm2 = f, fjm1
 		sjm1, sjm2 = s, sjm1
 	end
-    t = reverse(sjm1)
-    poly = inv(Nemo.lead(t)) * t  # make monic
-    return poly
+
+	t = sjm1
+	u = fjm1
+    den = inv(Nemo.lead(t)) * t  # make monic
+	num = inv(Nemo.lead(u)) * u
+    return num, den
 end
 
 ######################################################################
@@ -158,7 +154,7 @@ end
 
 
 """
-Compute the kernel polynomial of the normalized rational isogeny between elliptic curves of the form y^2 = f(x).
+Compute the rational fraction of the normalized rational isogeny between elliptic curves of the form y^2 = f(x).
 ``E1`` and ``E2`` of *odd* degree ``deg``.
 
 Assuming a rational normalized separable isogeny of degree ``deg`` exists between
@@ -183,8 +179,6 @@ function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::Abstrac
 	((p > 0) & (p <= 4*deg-1)) &&
 		throw(ArgumentError("BMSS algorithm only works for characteristic 0 or greater than 4*deg - 1."))
 
-	#Check if the returned polynomial is correct ?
-
     (a1, a2, a3, a4, a6) = a_invariants(E1)
     (b1, b2, b3, b4, b6) = a_invariants(E2)
 
@@ -196,26 +190,26 @@ function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::Abstrac
     G = a6 * x^3 + a4 * x^2 + a2 * x + one(R)
     H = b6 * x^3 + b4 * x^2 + b2 * x + one(R)
 
-    # solve the differential equation
-    # G(x) T'^2 = (T/x) H(T)
+    # solve the differential equation G(x) T'^2 = (T/x) H(T)
     sol = _BMSS_diffeq(G, H, 2*deg + 1)
 
-    # We recover the rational fraction using the relation
-    # T == x * D.reverse() / N.reverse()
-    U = shift_right(sol, 1)
+    # We recover the rational fraction using the relation T = D(1/x) / N(1/x)
+    U = shift_right(sol, 1)   #why ?
 	A, _ = PolynomialRing(K, "x")
 	Upol = convert(A, U)
-    N = berlekamp_massey(Upol)
-    D = reverse( convert(A, (U * convert(R, reverse(N)))))
+    num, den = berlekamp_massey(Upol)
+	N = reverse(den)
+	D = reverse(num)
 
-    # If the points of abscissa 0 are in the kernel,
-    # correct the degree of D
+    # If the points of abscissa 0 are in the kernel, correct the degree of D
     gap = degree(N) - degree(D) - 1
+    (gap > 0) && (D = shift_left(D, gap))
 
-    if gap > 0
-		D = shift_left(D, gap)
-	end
-    return D
+	#Making denominator monic
+	lambda = inv(Nemo.lead(D))
+	D = lambda * D
+	N = lambda * N
+    return (N, D)
 end
 
 """
@@ -229,9 +223,7 @@ end
 
     :param G: a power series with non-zero constant coefficient.
     :param H: a power series with non-zero constant coefficient.
-    :param prec: (optional) an integer denoting the truncation order of the solution.
-        If not given, it defaults to the common precision of G and H, or to the
-        default precision of the parent ring.
+    :param prec: an integer denoting the truncation order of the solution.
 
     :returns: the solution to the differential equation.
     :rtype: Power series
@@ -319,7 +311,7 @@ Sanity checks
 
 function kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
 	deg::Integer)
-	D = unsafe_kernelpoly(E1, E2, deg)
+	N, D = unsafe_kernelpoly(E1, E2, deg)
 
 	evenpart = Nemo.gcd(divisionpolynomial(E1, 2), D)
     oddpart = Nemo.divexact(D, evenpart)

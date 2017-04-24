@@ -197,14 +197,8 @@ Returns an elliptic curve in long Weierstrass form with the same equation, and t
 function tolongWeierstrass(E::ShortWeierstrassCurve)
 	zero = Nemo.zero(base_ring(E))
 	E2 = WeierstrassCurve(zero, zero, zero, E.a, E.b)
-	phi1 = ExplicitMap(E, E2,
-		function(P::EllipticPoint)
-			return EllipticPoint(P.X, P.Y, P.Z, E2)
-		end)
-	phi2 = ExplicitMap(E2, E,
-		function(P::EllipticPoint)
-			return EllipticPoint(P.X, P.Y, P.Z, E)
-		end)
+	phi1 = ExplicitMap(E, E2, P::EllipticPoint -> EllipticPoint(P.X, P.Y, P.Z, E2))
+	phi2 = ExplicitMap(E2, E, P::EllipticPoint -> EllipticPoint(P.X, P.Y, P.Z, E))
 	return E2, phi1, phi2
 end
 
@@ -246,37 +240,46 @@ end
 """
 Internal function to compute the mth division polynomial of an elliptic curve in short Weierstrass form, using the well-known induction formulas. If the index is even, the usual factor 2*y is dropped.
 """
-function _divpoly{T}(E::ShortWeierstrassCurve{T}, m::Nemo.Integer, R::Nemo.PolyRing{T})
+function _divpoly{T}(E::ShortWeierstrassCurve{T}, m::Nemo.Integer, R::Nemo.PolyRing{T}, D::Dict{Int, Nemo.PolyElem{T}})
 	A, B = E.a, E.b
 	x = Nemo.gen(R)
-	Divpols = Dict{Int, Nemo.PolyElem{T}}()
-	Divpols[1] = R(1)
-	Divpols[2] = R(1)
-	Divpols[3] = 3 * x^4 + 6 * A * x^2 + 12 * B * x - A^2
-	Divpols[4] = 2 * (x^6 + 5 * A * x^4 + 20 * B * x^3 - 5 * A^2 * x^2 - 4 * A * B * x - 8 * B^2 - A^3)
-	for d = 5 : m
- 		if isodd(d)
-			k = div(d - 1, 2)
-			m1 = Divpols[k - 1]
-			eq = Divpols[k]
-			p1 = Divpols[k+1]
-			p2 = Divpols[k+2]
-			if iseven(k)
-				Divpols[d] = 16 * (x^3 + A * x + B)^2 * p2 * eq^3 - m1 * p1^3
-			else #k is odd
-				Divpols[d] = p2 * eq^3 - 16 * (x^3 + A * x + B)^2 * m1 * p1^3
-			end
-		else  #d is even
-			k = div(d, 2)
-			m2 = Divpols[k-2]
-			m1 = Divpols[k - 1]
-			eq = Divpols[k]
-			p1 = Divpols[k+1]
-			p2 = Divpols[k+2]
-			Divpols[d] = eq * (p2 * m1^2 - m2 * p1^2)
+	if m in keys(D)
+		return D[m]
+	elseif m == 1
+		D[1] = R(1)
+		return D[1]
+	elseif m == 2
+		D[2] = R(1)
+		return D[2]
+	elseif m == 3
+		D[3] = 3 * x^4 + 6 * A * x^2 + 12 * B * x - A^2
+		return D[3]
+	elseif m == 4
+		D[4] = 2 * (x^6 + 5 * A * x^4 + 20 * B * x^3 - 5 * A^2 * x^2 - 4 * A * B * x - 8 * B^2 - A^3)
+		return D[4]
+	elseif isodd(m)
+		k = div(m - 1, 2)
+		m1 = _divpoly(E, k - 1, R, D)
+		eq = _divpoly(E, k, R, D)
+		p1 = _divpoly(E, k + 1, R, D)
+		p2 = _divpoly(E, k + 2, R, D)
+		if iseven(k)
+			D[m] = 16 * (x^3 + A * x + B)^2 * p2 * eq^3 - m1 * p1^3
+			return D[m]
+		else #k is odd
+			D[m] = p2 * eq^3 - 16 * (x^3 + A * x + B)^2 * m1 * p1^3
+			return D[m]
 		end
+	else  #m is even
+		k = div(m, 2)
+		m2 = _divpoly(E, k - 2, R, D)
+		m1 = _divpoly(E, k - 1, R, D)
+		eq = _divpoly(E, k, R, D)
+		p1 = _divpoly(E, k + 1, R, D)
+		p2 = _divpoly(E, k + 2, R, D)
+		D[m] = eq * (p2 * m1^2 - m2 * p1^2)
+		return D[m]
 	end
-	return Divpols[m]
 end
 
 """
@@ -285,11 +288,12 @@ Top-level function to compute the division polynomial of an elliptic curve in sh
 The result is exact when the index is odd; when m in even, returns an univariate polynomial in x whose roots are the abscissae of the m-torsion points (with extra ramification on the 2-torsion points).
 """
 
-function divisionpolynomial(E::ShortWeierstrassCurve, m::Nemo.Integer)
+function divisionpolynomial{T}(E::ShortWeierstrassCurve{T}, m::Nemo.Integer)
 	m <= 0 && throw(ArgumentError("m must be positive"))
 	K = base_ring(E)
 	R, x = Nemo.PolynomialRing(K, "x")
-	poly = _divpoly(E, m, R)
+	D = Dict{Int, Nemo.PolyElem{T}}()
+	poly = _divpoly(E, m, R, D)
 	if isodd(m)
 		return poly
 	else

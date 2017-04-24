@@ -99,11 +99,16 @@ phi = Isogeny(E, Q)
 Eprime = codomain(phi)
 d = degree(phi)
 
-@test d == 7^2
 
+@test d == 7^2
+#= Very long
 psi = Isogeny(E, Eprime, d)
 
 @test kernel(psi) == Q
+=#
+id = Isogeny(E, E, 1)
+
+@test kernel(id) == 1
 
 #Over small finite fields
 
