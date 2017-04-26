@@ -198,7 +198,7 @@ function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::Abstrac
 	A, _ = PolynomialRing(K, "x")
 	Upol = convert(A, U)
     num, den = berlekamp_massey(Upol)
-	N = reverse(den)
+	N = reverse(den) #maybe not the right numerator
 	D = reverse(num)
 
     # If the points of abscissa 0 are in the kernel, correct the degree of D

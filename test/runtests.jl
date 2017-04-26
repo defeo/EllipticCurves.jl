@@ -1,5 +1,5 @@
 using Nemo
-
+using Primes
 using EllipticCurves
 
 using Base.Test
@@ -185,18 +185,6 @@ mP3 = minus(P3)
 @test plus(P1, mP3) == EllipticPoint(QQ(4), QQ(9), QQ(1), E)
 
 
-######################################################################
-# Testing bmss.jl
-######################################################################
-
-
-
-
-######################################################################
-# Testing modular.jl
-######################################################################
-
-
 
 
 ######################################################################
@@ -261,5 +249,73 @@ No addition for complete projective points on Montgomery curves yet
 @test areequal(times(4, xP1), xinfinity(E))
 
 @test areequal(xladder(8, xP1), xinfinity(E))
+
+
+######################################################################
+# Testing finite.jl
+######################################################################
+
+print("Testing isogeny computation over finite fields...\n")
+
+F, _ = FiniteField(233, 1, "u")
+Cards = Dict{Int,Nemo.fmpz}()
+
+#Roots of polynomials
+
+R, X = PolynomialRing(F, "X")
+(bool, root) = any_root(X^2 - 1)
+@test bool
+@test root^2 == 1
+
+#Conversions
+
+G, z = FiniteField(233, 3, "z")
+@test convert(G(1), F) == F(1)
+@test convert(F(1), G) == G(1)
+
+#Testing isogeny computations : cardinality is given by Sage
+
+E = WeierstrassCurve(F(1), F(2), F(3), F(4), F(5))
+Cards[1] = ZZ(224)
+Card = Cards[1]
+
+(bool, order) = isgoodprime(E, 19, Card)
+@test !bool
+(bool, order) = isgoodprime(E, 7, Card)
+@test bool
+@test order == 1
+
+phi = first_isogeny(E, 7, Cards)
+@test j_invariant(codomain(phi)) == F(52) #Given by Sage
+
+
+#With Montgomery curves
+
+E = MontgomeryCurve(F(3), F(1))
+Cards[1] = ZZ(240)
+Card = Cards[1]
+
+(bool, order) = isgoodprime(E, 17, Card)
+@test !bool
+(bool, order) = isgoodprime(E, 5, Card)
+@test bool
+@test order == 1
+
+phi = first_isogeny_x(E, 5, Cards)
+@test j_invariant(codomain(phi)) == F(76) #Given by Sage
+
+#Testing over extensions : p must be big
+
+F, _ = FiniteField(1267650600228229401496703205653, 1, "u")
+E = MontgomeryCurve(F(3), F(1))
+Cards[1] = ZZ(1267650600228228574627063707104)
+Card = Cards[1]
+Cards[4] = ZZ(2582249878086908589655919174260047736108316376414661336328042639672071392914646520434415276111057972712143504852274942464)
+
+(bool, order) = isgoodprime(E, 109, Card)
+@test bool
+@test order == 4
+
+phi = first_isogeny_x(E, 109, Cards)
 
 

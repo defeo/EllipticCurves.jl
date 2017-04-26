@@ -11,11 +11,11 @@ export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Is
 
 #Exporting functions
 
-export Eval, base_curve, base_ring, a_invariants, b_invariants, c_invariants, j_invariant, areequal, isinfinity, normalized, infinity, minus, plus, isvalid, tolongWeierstrass, toshortWeierstrass, xonly, isfixedtorsion, xinfinity, fixedtorsion, times, codomain, domain, kernel, divisionpolynomial
+export Eval, base_curve, base_ring, a_invariants, b_invariants, c_invariants, j_invariant, areequal, isinfinity, normalized, infinity, minus, plus, isvalid, tolongWeierstrass, toshortWeierstrass, xonly, isfixedtorsion, xinfinity, fixedtorsion, times, codomain, domain, kernel, divisionpolynomial, random, cardinality, frobeniuspolynomial, any_root, randomxonly, torsionpoint, torsionxonly, base_extend, isgoodprime, goodprimes, first_isogeny, first_isogeny_x
 
 #Functions we may want to turn internal
 
-export xdouble, xadd, addequalx, addgeneric, xladder
+export xdouble, xadd, addequalx, addgeneric, xladder, subgrouppolynomial
 
 ######################################################################
 # Abstract types
@@ -105,6 +105,15 @@ include("montgomery.jl")
 
 using .Montgomery
 
+
+######################################################################
+# Over finite fields
+######################################################################
+
+
+include("finfields.jl")
+
+using .Finite
 
 
 end # module

@@ -346,19 +346,18 @@ Build an isogeny given its domain and the polynomial defining its kernel.
 The kernel polynomial is assumed to be monic and separable.
 """
 function Isogeny{T}(E::WeierstrassCurve{T}, poly::Nemo.PolyElem{T})
+	K = base_ring(E)
 	a1, a2, a3, a4, a6 = a_invariants(E)
-    b2, b4, b6, b8 = b_invariants(E)
-    n = Nemo.degree(poly)
-    
-    s1 = - Nemo.coeff(poly, n - 1)
-	s2 = Nemo.coeff(poly, n - 2)
-	s3 = - Nemo.coeff(poly, n - 3)
-    t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
-    w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
-    
-    E1 = WeierstrassCurve(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
-    
-    return Isogeny(E, 2 * n + 1, poly, E1)
+	b2, b4, b6, b8 = b_invariants(E)
+	n = Nemo.degree(poly)
+	s1, s2, s3 = Nemo.zero(K), Nemo.zero(K), Nemo.zero(K)
+	n > 0 && (s1 = - Nemo.coeff(poly, n - 1))
+	n > 1 && (s2 = Nemo.coeff(poly, n - 2))
+	n > 2 && (s3 = - Nemo.coeff(poly, n - 3))
+	t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
+	w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
+	E1 = WeierstrassCurve(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
+	return Isogeny(E, 2 * n + 1, poly, E1)
 end
 
 
