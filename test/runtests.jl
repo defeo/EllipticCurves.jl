@@ -14,8 +14,8 @@ using Base.Test
 
 print("Testing basic methods of elliptic curves and projective points...\n")
 
-E = ShortWeierstrassCurve(QQ(0), QQ(17))
-Eprime = ShortWeierstrassCurve(QQ(0), QQ(16))
+E = ShortWeierstrass(QQ(0), QQ(17))
+Eprime = ShortWeierstrass(QQ(0), QQ(16))
 P1 = EllipticPoint(QQ(-2), QQ(3), QQ(1), E)
 P3 = EllipticPoint(QQ(2), QQ(5), QQ(1), E)
 
@@ -52,7 +52,7 @@ print("Testing invariants and model changes...\n")
 @test j_invariant(E) == QQ(0)
 @test isvalid(E)
 
-E2 = WeierstrassCurve(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
+E2 = Weierstrass(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
 
 @test a_invariants(E2) == (QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
 @test b_invariants(E2) == (QQ(9), QQ(11), QQ(33), QQ(44))
@@ -66,19 +66,19 @@ E2 = WeierstrassCurve(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
 
 #Testing changes of variables
 
-E1 = ShortWeierstrassCurve(QQ(0), QQ(17))
-E2 = WeierstrassCurve(QQ(0), QQ(0), QQ(0), QQ(0), QQ(17))
+E1 = ShortWeierstrass(QQ(0), QQ(17))
+E2 = Weierstrass(QQ(0), QQ(0), QQ(0), QQ(0), QQ(17))
 P2 = EllipticPoint(QQ(-2), QQ(3), QQ(1), E2)
-E3, phi, psi = tolongWeierstrass(E)
+#E3, phi, psi = tolongWeierstrass(E)
 
-@test E2 == E3
-@test Eval(phi, P1) == P2
-@test Eval(psi, P2) == P1
+#@test E2 == E3
+#@test Eval(phi, P1) == P2
+#@test Eval(psi, P2) == P1
 
-E2 = WeierstrassCurve(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
-E3, _, _ = toshortWeierstrass(E2)
+#E2 = Weierstrass(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
+#E3, _, _ = toshortWeierstrass(E2)
 
-@test j_invariant(E2) == j_invariant(E3)
+#@test j_invariant(E2) == j_invariant(E3)
 
 
 
@@ -86,7 +86,7 @@ E3, _, _ = toshortWeierstrass(E2)
 
 print("Testing isogenies...\n")
 
-E = ShortWeierstrassCurve(QQ(1), QQ(2))
+E = ShortWeierstrass(QQ(1), QQ(2))
 
 P1 = divisionpolynomial(E, 1)
 P7 = divisionpolynomial(E, 7)
@@ -96,7 +96,7 @@ P7 = divisionpolynomial(E, 7)
 
 Q = 1//lead(P7) * P7
 phi = Isogeny(E, Q)
-Eprime = codomain(phi)
+Eprime = image(phi)
 d = degree(phi)
 
 
@@ -113,7 +113,7 @@ id = Isogeny(E, E, 1)
 #Over small finite fields
 
 F, x = FiniteField(233, 1, "x")
-E = ShortWeierstrassCurve(F(1), F(2))
+E = ShortWeierstrass(F(1), F(2))
 
 P1 = divisionpolynomial(E, 1)
 P7 = divisionpolynomial(E, 7)
@@ -123,7 +123,7 @@ P7 = divisionpolynomial(E, 7)
 
 Q = 1//lead(P7) * P7
 phi = Isogeny(E, Q)
-Eprime = codomain(phi)
+Eprime = image(phi)
 d = degree(phi)
 
 @test d == 7^2
@@ -132,12 +132,13 @@ psi = Isogeny(E, Eprime, d)
 
 #Over large finite fields
 
-@test kernel(psi) == Q
+@test kernel(psi) == Q^2
+@test squarefree_kernel(psi) == Q
 
 p = ZZ(3273390607896141870013189696827599152216642046043064789483291368096133796404674554883270092325904157150886684127560071009217256545885393053328527589431)
 
 F, x = FiniteField(p, 1, "x")
-E = ShortWeierstrassCurve(F(1), F(2))
+E = ShortWeierstrass(F(1), F(2))
 
 P1 = divisionpolynomial(E, 1)
 P7 = divisionpolynomial(E, 7)
@@ -147,14 +148,15 @@ P7 = divisionpolynomial(E, 7)
 
 Q = 1//lead(P7) * P7
 phi = Isogeny(E, Q)
-Eprime = codomain(phi)
+Eprime = image(phi)
 d = degree(phi)
 
 @test d == 7^2
 
 psi = Isogeny(E, Eprime, d)
 
-@test kernel(psi) == Q
+@test kernel(psi) == Q^2
+@test squarefree_kernel(psi) == Q
 
 ######################################################################
 # Testing points.jl
@@ -166,23 +168,23 @@ psi = Isogeny(E, Eprime, d)
 print("Testing addition laws...\n")
 
 
-E = ShortWeierstrassCurve(QQ(0), QQ(17))
+E = ShortWeierstrass(QQ(0), QQ(17))
 P1 = EllipticPoint(QQ(-2), QQ(3), QQ(1), E)
 P2 = EllipticPoint(QQ(-1), QQ(4), QQ(1), E)
 P3 = EllipticPoint(QQ(2), QQ(5), QQ(1), E)
 Pinf = infinity(E)
 
-@test plus(P1, P1) == addequalx(P1, P1) == EllipticPoint(QQ(8), QQ(-23), QQ(1), E)
-@test plus(Pinf, Pinf) == Pinf
-@test plus(P1, Pinf) == plus(Pinf, P1) == P1
-@test plus(P2, P2) == addequalx(P2, P2) == EllipticPoint(QQ(137//64), QQ(-2651//512), QQ(1), E)
-@test plus(P2, P3) == addgeneric(P2, P3) == EllipticPoint(QQ(-8//9), QQ(-109//27), QQ(1), E)
+@test P1 + P1 == EllipticPoint(QQ(8), QQ(-23), QQ(1), E)
+@test Pinf + Pinf == Pinf
+@test P1 + Pinf == Pinf + P1 == P1
+@test P2 + P2 == EllipticPoint(QQ(137//64), QQ(-2651//512), QQ(1), E)
+@test P2 + P3 == EllipticPoint(QQ(-8//9), QQ(-109//27), QQ(1), E)
 
-mP3 = minus(P3)
+mP3 = -P3
 
 @test mP3 == EllipticPoint(QQ(2), QQ(-5), QQ(1), E)
-@test plus(P3, mP3) == Pinf
-@test plus(P1, mP3) == EllipticPoint(QQ(4), QQ(9), QQ(1), E)
+@test P3 + mP3 == Pinf
+@test P1 + mP3 == P1 - P3 == EllipticPoint(QQ(4), QQ(9), QQ(1), E)
 
 
 
@@ -211,9 +213,9 @@ P0 = EllipticPoint(QQ(0), QQ(0), QQ(1), E)
 
 
 Z = Nemo.ZZ
-E2, _, _ = tolongWeierstrass(E)
+#E2, _, _ = tolongWeierstrass(E)
 
-@test a_invariants(E2) == (0, 7, 0, 1, 0)
+#@test a_invariants(E2) == (0, 7, 0, 1, 0)
 
 #Testing x-only arithmetic
 
@@ -275,7 +277,7 @@ G, z = FiniteField(233, 3, "z")
 
 #Testing isogeny computations : cardinality is given by Sage
 
-E = WeierstrassCurve(F(1), F(2), F(3), F(4), F(5))
+E = Weierstrass(F(1), F(2), F(3), F(4), F(5))
 Cards[1] = ZZ(224)
 Card = Cards[1]
 
@@ -286,7 +288,7 @@ Card = Cards[1]
 @test order == 1
 
 phi = first_isogeny(E, 7, Cards)
-@test j_invariant(codomain(phi)) == F(52) #Given by Sage
+@test j_invariant(image(phi)) == F(52) #Given by Sage
 
 
 #With Montgomery curves
@@ -302,7 +304,7 @@ Card = Cards[1]
 @test order == 1
 
 phi = first_isogeny_x(E, 5, Cards)
-@test j_invariant(codomain(phi)) == F(76) #Given by Sage
+@test j_invariant(image(phi)) == F(76) #Given by Sage
 
 #Testing over extensions : p must be big
 

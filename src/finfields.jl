@@ -185,7 +185,7 @@ end
 """
 Decide whether a given curve in short Weierstrass form has a Mongomery rational model, and return it if so.
 """
-function has_montgomery{T<:FinFieldElem}(E::ShortWeierstrassCurve{T})
+function has_montgomery{T<:FinFieldElem}(E::ShortWeierstrass{T})
 	K = base_ring(E)
 	A, X = PolynomialRing(K, "X")
 	poly = X^3 + E.a * X + E.b
@@ -199,7 +199,7 @@ function has_montgomery{T<:FinFieldElem}(E::ShortWeierstrassCurve{T})
 	return (false, MontgomeryCurve(K(1), K(1)))
 end
 
-function has_montgomery{T<:FinFieldElem}(E::WeierstrassCurve{T})
+function has_montgomery{T<:FinFieldElem}(E::Weierstrass{T})
 	E2, _, _ = toshortWeierstrass(E)
 	return has_montgomery(E2)
 end
@@ -207,10 +207,11 @@ end
 #Vélu's formulae for Montgomery curves
 
 function Isogeny{T<:FinFieldElem}(E::MontgomeryCurve{T}, poly::PolyElem{T})
-	E2, _, _ = tolongWeierstrass(E)
+	K = base_ring(E)
+	E2 = Weierstrass(zero(K), one(K), zero(K), E.A, zero(K)) #tolongWeierstrass(E)
 	X = Nemo.gen(parent(poly))
 	poly2 = poly(E.B * X)
-	E3 = codomain(Isogeny(E2, poly2))
+	E3 = image(Isogeny(E2, poly2))
 	bool, E4 = has_montgomery(E3)
 	bool || throw(ArgumentError("Target curve has no rational Montgomery model"))
 	return Isogeny(E, 2 * degree(poly) + 1, poly, E4)
@@ -224,20 +225,20 @@ Given an elliptic curve over a prime finite field, compute the curve obtained af
 function base_extend{T<:FinFieldElem}(E::EllipticCurve{T}, K::FinField)
 end
 
-function base_extend{T<:FinFieldElem}(E::ShortWeierstrassCurve{T}, K::FinField)
+function base_extend{T<:FinFieldElem}(E::ShortWeierstrass{T}, K::FinField)
 	K1 = base_ring(E)
 	p1 = characteristic(K1)
 	p = characteristic(K)
 	((degree(K1) == 1) & (p1 == p)) || throw(ArgumentError("Invalid field extension"))
-	return ShortWeierstrassCurve(convert(E.a, K), convert(E.b, K))
+	return ShortWeierstrass(convert(E.a, K), convert(E.b, K))
 end
 
-function base_extend{T<:FinFieldElem}(E::WeierstrassCurve{T}, K::FinField)
+function base_extend{T<:FinFieldElem}(E::Weierstrass{T}, K::FinField)
 	K1 = base_ring(E)
 	p1 = characteristic(K1)
 	p = characteristic(K)
 	((degree(K1) == 1) & (p1 == p)) || throw(ArgumentError("Invalid field extension"))
-	return WeierstrassCurve(convert(E.a1, K), convert(E.a2, K), convert(E.a3, K), convert(E.a4, K), convert(E.a6, K))
+	return Weierstrass(convert(E.a1, K), convert(E.a2, K), convert(E.a3, K), convert(E.a4, K), convert(E.a6, K))
 end
 
 function base_extend{T<:FinFieldElem}(E::MontgomeryCurve{T}, K::FinField)
@@ -265,12 +266,12 @@ end
 function torsionpoint{T<:FinFieldElem}(E::EllipticCurve{T}, l::Int, Card::Nemo.fmpz)
 	cofactor = Nemo.divexact(Card, l)
 	P = random(E)
-	Q = times(cofactor, P)
+	Q = cofactor * P
 	while isinfinity(Q)
 		P = random(E)
 		Q = times(cofactor, P)
 	end
-	isinfinity(times(l, Q)) || throw(ArgumentError("Given curve has no such torsion rational points"))
+	isinfinity(l * Q) || throw(ArgumentError("Given curve has no such torsion rational points"))
 	return Q
 end
 
@@ -333,7 +334,7 @@ function subgrouppolynomial{T<:FinFieldElem}(E::EllipticCurve{T}, l::Int, Q::Ell
 	P = Q
 	for i = 1 : div(l-1, 2)
 		poly *= (Y - P.X)
-		P = plus(P, Q)
+		P = P + Q
 	end
 	return poly
 end
