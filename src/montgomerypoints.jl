@@ -4,25 +4,25 @@
 # montgomerypoints.jl: X-only points for Montgomery curves
 ######################################################################
 
+export XonlyPoint, xonly, xadd, xdouble, xinfinity
+
+######################################################################
+# Type definitions
+######################################################################
+
 """
-Concrete type for x-only points to speed up arithmetic.
+Concrete type for x-only points on Montgomery curves.
 """
 type XonlyPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
     X::T
     Z::T
-    curve::MontgomeryCurve{T}
+    curve::Montgomery{T}
 end
 
-function base_ring(P::XonlyPoint)
-	return Nemo.parent(P.X)
-end
+base_ring(P::XonlyPoint) = Nemo.parent(P.X)
 
-"""
-Decide if two x-only points are given by the exact same coordinates.
-"""
-function ==(P::XonlyPoint, Q::XonlyPoint)
-	return (P.curve == Q.curve) & (P.X == Q.X) & (P.Z == Q.Z)
-end
+base_curve(P::XonlyPoint) = P.curve
+
 
 """
 Get a description of an x-only point.
@@ -39,11 +39,8 @@ end
 
 """
 Get a normalized x-only point from any x-only point.
-This requires the base ring to be a field.
-
-Returns a new x-only point with Z-coordinate equal to 1, without changing the input.
 """
-function normalized{T<:Nemo.FieldElem}(P::XonlyPoint{T})
+function normalized{T}(P::XonlyPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
         return XonlyPoint(Nemo.zero(K), 
@@ -58,8 +55,6 @@ end
 
 """
 Normalizes a x-only point to a x-only point with Z-coordinate 1.
-
-Does not create a new point, and changes the input.
 """
 function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T})
     K = Nemo.parent(P.X)
@@ -73,26 +68,36 @@ function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T})
 end
 
 
-function areequal{T<:Nemo.FieldElem}(P::XonlyPoint{T}, Q::XonlyPoint{T})
-	return normalized(P) == normalized(Q)
+
+"""
+Decide whether two x-only points are given by the exact same coordinates.
+"""
+function ==(P::XonlyPoint, Q::XonlyPoint)
+	return (P.curve == Q.curve) & (P.X == Q.X) & (P.Z == Q.Z)
 end
+
+"""
+Decide whether two x-only points are equal.
+"""
+areequal(P::XonlyPoint, Q::XonlyPoint) = P.X * Q.Z - P.Z * Q.X == 0
+
 
 """
 Decide whether an x-only point is the point at infinity.
 """
-isinfinity(P::XonlyPoint) = Nemo.iszero(P.Z)
+isinfinity(P::XonlyPoint) = iszero(P.Z)
 
 """
 Decide whether an x-only point is the fixed 2-torsion point of the Montgomery model (at the origin).
 """
-isfixedtorsion(P::XonlyPoint) = Nemo.iszero(P.X)
+isxfixedtorsion(P::XonlyPoint) = iszero(P.X)
 
 
 
 """
 Get the x-only point at infinity on a Montgomery curve.
 """
-function xinfinity(E::MontgomeryCurve)
+function xinfinity(E::Montgomery)
     K = Nemo.parent(E.A)
     zero = Nemo.zero(K)
     return XonlyPoint(zero, zero, E)
@@ -102,7 +107,7 @@ end
 """
 Get the fixed x-only 2-torsion point on a Montgomery curve.
 """
-function fixedtorsion(E::MontgomeryCurve)
+function xfixedtorsion(E::Montgomery)
     K = Nemo.parent(E.A)
     return XonlyPoint(Nemo.zero(K), Nemo.one(K), E)
 end
@@ -116,7 +121,6 @@ end
 # Montgomery arithmetic
 ######################################################################
 
-#taken from Ben Smith's review article
 
 """
 Double any x-only point using the least possible field operations.
@@ -189,7 +193,7 @@ end
 """
 Top-level function for scalar multiplications with x-only points on Montgomery curves
 """
-function times(k::Nemo.Integer, P::XonlyPoint)
+function *(k::Nemo.Integer, P::XonlyPoint)
 	E = P.curve
 	if k == 0
 		return xinfinity(E)
@@ -198,15 +202,17 @@ function times(k::Nemo.Integer, P::XonlyPoint)
 	else
 		if isinfinity(P)
 			return xinfinity(E)
-		elseif isfixedtorsion(P)
+		elseif isxfixedtorsion(P)
 			if k % 2 == 0
 				return xinfinity(E)
 			else
-				return fixedtorsion(E)
+				return xfixedtorsion(E)
 			end
 		else
 			return xladder(k, P)
 		end
 	end
 end
+
+*(k::Nemo.fmpz, P::XonlyPoint) = BigInt(k) * P
 

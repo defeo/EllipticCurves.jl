@@ -1,98 +1,6 @@
 
-######################################################################
-# Useful functions for finite fields
-######################################################################
 
-#Multiplicative order in (small) finite fields
-
-function order(x::FinFieldElem)
-	K = parent(x)
-	if x == Nemo.zero(K)
-		throw(ArgumentError("Argument must be non-zero"))
-	else
-		k = 1
-		z = x
-		while z != Nemo.one(K)
-			z *= x
-			k += 1
-		end
-		return k
-	end
-end
-
-#Random elements in finite fields
-
-function random(K::FinField)
-	p = characteristic(K)
-	r = degree(K)
-	alpha = Nemo.gen(K)
-	res = Nemo.zero(K)
-	for i = 0 : (r-1)
-		c = rand(BigInt(0) : BigInt(p - 1))
-		res += c * alpha^i
-	end
-	return res
-end
-
-#Computing roots of polynomials over finite fields
-
-function roots{T<:FinFieldElem}(f::PolyElem{T})
-	fac = Nemo.factor(f)
-	res = Dict{T, Int}()
-	for index in fac
-		P, exp = index
-		if degree(P) == 1
-			res[- coeff(P, 0)] = exp
-		end
-	end
-	res = collect(res)
-	return res
-end
-	
-function any_root{T<:FinFieldElem}(f::PolyElem{T})
-	r = roots(f)
-	if any(_->true, r) #tests whether r contains any element
-		y0, _ = r[1]
-		return (true, y0)
-	else
-		return (false, Nemo.zero(base_ring(f)))
-	end
-end
-
-function issquare(x::FinFieldElem)
-	K = parent(x)
-	A, y = PolynomialRing(K, "y")
-	return any_root(y^2 - x)
-end
-
-#Conversions between finite fields
-
-"""
-Convert an element of a finite field to another one.
-
-No control is made on the input.
-"""
-function convert(x::FinFieldElem, K::FinField)
-	K1 = parent(x)
-	p1 = characteristic(K1)
-	p = characteristic(K)
-	(p1 == p) || throw(ArgumentError("Fields must have the same characteristic"))
-	y = deepcopy(x)
-	y.parent = K
-	return y
-end
-
-"""
-When used with polynomials, converts each coefficient.
-"""
-function convert{T<:FinFieldElem}(P::PolyElem{T}, K::FinField)
-	A, Y = PolynomialRing(K, "Y")
-	poly = Nemo.zero(A)
-	for i = 0:degree(P)
-		Nemo.setcoeff!(poly, i, convert(coeff(P, i), K))
-	end
-	return poly
-end
+export has_montgomery, isgoodprime, first_isogeny_x, first_isogeny, rand
 
 ######################################################################
 # Elliptic curves over finite fields
@@ -118,45 +26,45 @@ function frobeniuspolynomial{T<:FinFieldElem}(E::EllipticCurve{T}, Card::Nemo.fm
 	return X^2 - t * X + q
 end
 
-#Random points on elliptic curves
+#rand points on elliptic curves
 
-function random{T<:FinFieldElem}(E::AbstractWeierstrass{T})
+function rand(E::AbstractWeierstrass)
 	a1, a2, a3, a4, a6 = a_invariants(E)
 	K = base_ring(E)
 	A, Y = PolynomialRing(K, "Y")
-	x = random(K)
+	x = rand(K)
 	poly = Y^2 + a1 * x * Y + a3 * Y - x^3 - a2 * x^2 - a4 * x - a6
 	bool, y = any_root(poly)
 	while bool == false
-		x = random(K)
+		x = rand(K)
 		poly = Y^2 + a1 * x * Y + a3 * Y - x^3 - a2 * x^2 - a4 * x - a6
 		(bool, y) = any_root(poly)
 	end
 	return EllipticPoint(x, y, Nemo.one(K), E)
 end
 
-function random{T<:FinFieldElem}(E::MontgomeryCurve{T})
+function rand{T<:FinFieldElem}(E::Montgomery{T})
 	K = base_ring(E)
 	A, Y = PolynomialRing(K, "Y")
-	x = random(K)
+	x = rand(K)
 	poly = E.B * Y^2 - x^3 - E.A * x^2 - x
 	bool, y = any_root(poly)
 	while bool == false
-		x = random(K)
+		x = rand(K)
 		poly = E.B * Y^2 - x^3 - E.A * x^2 - x
 		bool, y = any_root(poly)
 	end
 	return EllipticPoint(x, y, Nemo.one(K), E)
 end
 
-function randomxonly{T<:FinFieldElem}(E::MontgomeryCurve{T})
+function randxonly{T<:FinFieldElem}(E::Montgomery{T})
 	K = base_ring(E)
 	A, Y = PolynomialRing(K, "Y")
-	x = random(K)
+	x = rand(K)
 	poly = E.B * Y^2 - x^3 - E.A * x^2 - x
 	bool, y = any_root(poly)
 	while bool == false
-		x = random(K)
+		x = rand(K)
 		poly = E.B * Y^2 - x^3 - E.A * x^2 - x
 		bool, y = any_root(poly)
 	end
@@ -194,9 +102,9 @@ function has_montgomery{T<:FinFieldElem}(E::ShortWeierstrass{T})
 	for i = 1:n
 		alpha, _ = r[i]
 		(test, beta) = issquare(3*alpha^2 + E.a)
-		test && return (true, MontgomeryCurve(3 * alpha // beta, 1 // beta))
+		test && return (true, Montgomery(3 * alpha // beta, 1 // beta))
 	end
-	return (false, MontgomeryCurve(K(1), K(1)))
+	return (false, Montgomery(K(1), K(1)))
 end
 
 function has_montgomery{T<:FinFieldElem}(E::Weierstrass{T})
@@ -206,7 +114,7 @@ end
 
 #Vélu's formulae for Montgomery curves
 
-function Isogeny{T<:FinFieldElem}(E::MontgomeryCurve{T}, poly::PolyElem{T})
+function Isogeny{T<:FinFieldElem}(E::Montgomery{T}, poly::PolyElem{T})
 	K = base_ring(E)
 	E2 = Weierstrass(zero(K), one(K), zero(K), E.A, zero(K)) #tolongWeierstrass(E)
 	X = Nemo.gen(parent(poly))
@@ -241,12 +149,12 @@ function base_extend{T<:FinFieldElem}(E::Weierstrass{T}, K::FinField)
 	return Weierstrass(convert(E.a1, K), convert(E.a2, K), convert(E.a3, K), convert(E.a4, K), convert(E.a6, K))
 end
 
-function base_extend{T<:FinFieldElem}(E::MontgomeryCurve{T}, K::FinField)
+function base_extend{T<:FinFieldElem}(E::Montgomery{T}, K::FinField)
 	K1 = base_ring(E)
 	p1 = characteristic(K1)
 	p = characteristic(K)
 	((degree(K1) == 1) & (p1 == p)) || throw(ArgumentError("Invalid field extension"))
-	return MontgomeryCurve(convert(E.A, K), convert(E.B, K))
+	return Montgomery(convert(E.A, K), convert(E.B, K))
 end
 
 ######################################################################
@@ -255,33 +163,26 @@ end
 
 #Computing torsion points
 
-function times(C::Nemo.fmpz, Q::EllipticPoint)
-	return times(BigInt(C), Q)
-end
-
-function times(C::Nemo.fmpz, Q::XonlyPoint)
-	return times(BigInt(C), Q)
-end
 
 function torsionpoint{T<:FinFieldElem}(E::EllipticCurve{T}, l::Int, Card::Nemo.fmpz)
 	cofactor = Nemo.divexact(Card, l)
-	P = random(E)
+	P = rand(E)
 	Q = cofactor * P
 	while isinfinity(Q)
-		P = random(E)
-		Q = times(cofactor, P)
+		P = rand(E)
+		Q = cofactor * P
 	end
 	isinfinity(l * Q) || throw(ArgumentError("Given curve has no such torsion rational points"))
 	return Q
 end
 
-function torsionxonly{T<:FinFieldElem}(E::MontgomeryCurve{T}, l::Int, Card::Nemo.fmpz)
+function torsionxonly{T<:FinFieldElem}(E::Montgomery{T}, l::Int, Card::Nemo.fmpz)
 	cofactor = Nemo.divexact(Card, l)
-	P = randomxonly(E)
+	P = randxonly(E)
 	Q = times(cofactor, P)
 	while isinfinity(Q)
-		P = randomxonly(E)
-		Q = times(cofactor, P)
+		P = randxonly(E)
+		Q = cofactor * P
 	end
 	isinfinity(times(l, Q)) || throw(ArgumentError("Given curve has no such torsion rational points"))
 	return Q
@@ -364,7 +265,7 @@ end
 
 #With Montgomery curves
 
-function subgrouppolynomial{T<:FinFieldElem}(E::MontgomeryCurve{T}, l::Int, Q::XonlyPoint{T})
+function subgrouppolynomial{T<:FinFieldElem}(E::Montgomery{T}, l::Int, Q::XonlyPoint{T})
 	K = base_ring(E)
 	A, Y = PolynomialRing(K, "Y")
 	poly = Nemo.one(A)
@@ -376,7 +277,7 @@ function subgrouppolynomial{T<:FinFieldElem}(E::MontgomeryCurve{T}, l::Int, Q::X
 	return poly
 end
 
-function first_isogeny_x{T<:FinFieldElem}(E::MontgomeryCurve{T}, l::Int, Cards::Dict{Int, Nemo.fmpz})
+function first_isogeny_x{T<:FinFieldElem}(E::Montgomery{T}, l::Int, Cards::Dict{Int, Nemo.fmpz})
 	Card = Cards[1]
 	(bool, order) = isgoodprime(E, l, Card)
 	bool || throw(ArgumentError("Given degree is not a good prime for the chosen curve"))

@@ -198,7 +198,7 @@ print("Testing Montgomery curves...\n")
 #Testing basic functions
 
 
-E = MontgomeryCurve(QQ(7), QQ(1))
+E = Montgomery(QQ(7), QQ(1))
 P1 = EllipticPoint(QQ(1), QQ(3), QQ(1), E)
 P0 = EllipticPoint(QQ(0), QQ(0), QQ(1), E)
 
@@ -224,8 +224,8 @@ xP1 = xonly(P1)
 xP0 = xonly(P0)
 xinf = xinfinity(E)
 
-@test isfixedtorsion(xP0)
-@test !isfixedtorsion(xP1)
+#@test isfixedtorsion(xP0)
+#@test !isfixedtorsion(xP1)
 
 #=
 No addition for complete projective points on Montgomery curves yet
@@ -242,15 +242,15 @@ No addition for complete projective points on Montgomery curves yet
 @test areequal(xadd(xP1, xP0, xP1), xP1)
 
 
-@test areequal(times(0, xP1), xinfinity(E))
-@test areequal(times(1, xP1), xP1)
-@test areequal(times(2, xP1), xP0)
-@test areequal(times(1, xP0), xP0)
-@test areequal(times(2, xP0), xinfinity(E))
-@test areequal(times(45, xinfinity(E)), xinfinity(E))
-@test areequal(times(4, xP1), xinfinity(E))
+@test areequal(0 * xP1, xinfinity(E))
+@test areequal(1 * xP1, xP1)
+@test areequal(2 * xP1, xP0)
+@test areequal(1 * xP0, xP0)
+@test areequal(2 * xP0, xinfinity(E))
+@test areequal(45 * xinfinity(E), xinfinity(E))
+@test areequal(4 * xP1, xinfinity(E))
 
-@test areequal(xladder(8, xP1), xinfinity(E))
+@test areequal(8 * xP1, xinfinity(E))
 
 
 ######################################################################
@@ -293,7 +293,7 @@ phi = first_isogeny(E, 7, Cards)
 
 #With Montgomery curves
 
-E = MontgomeryCurve(F(3), F(1))
+E = Montgomery(F(3), F(1))
 Cards[1] = ZZ(240)
 Card = Cards[1]
 
@@ -303,13 +303,15 @@ Card = Cards[1]
 @test bool
 @test order == 1
 
+
+#=
 phi = first_isogeny_x(E, 5, Cards)
 @test j_invariant(image(phi)) == F(76) #Given by Sage
 
 #Testing over extensions : p must be big
 
 F, _ = FiniteField(1267650600228229401496703205653, 1, "u")
-E = MontgomeryCurve(F(3), F(1))
+E = Montgomery(F(3), F(1))
 Cards[1] = ZZ(1267650600228228574627063707104)
 Card = Cards[1]
 Cards[4] = ZZ(2582249878086908589655919174260047736108316376414661336328042639672071392914646520434415276111057972712143504852274942464)
@@ -319,5 +321,6 @@ Cards[4] = ZZ(258224987808690858965591917426004773610831637641466133632804263967
 @test order == 4
 
 phi = first_isogeny_x(E, 109, Cards)
+=#
 
 

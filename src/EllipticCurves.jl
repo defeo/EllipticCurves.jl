@@ -5,12 +5,20 @@
 
 module EllipticCurves
 
+
+######################################################################
+# Conventions
+######################################################################
+
+#Polynomial rings have variables X, Y, Z, U, V...
+
+
 ######################################################################
 # Julia/Nemo imports
 ######################################################################
 
 import Nemo
-import Nemo: base_ring, discriminant, degree, PolynomialRing, order, FinField, FinFieldElem, PolyElem, FiniteField, roots, issquare, parent, convert, trace, degree, coeff, characteristic, jacobi, Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, gen, shift_left, shift_right, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!, sqrt, isprime, ZZ, GenFrac, GenMPoly, evaluate, divexact
+import Nemo: base_ring, discriminant, degree, PolynomialRing, order, FinField, FinFieldElem, PolyElem, FiniteField, roots, issquare, parent, convert, trace, degree, coeff, characteristic, jacobi, Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, shift_left, shift_right, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!, sqrt, isprime, ZZ, GenFrac, GenMPoly, evaluate, divexact
 
 import Base: show, normalize!, isvalid, ==, rand, *, +, -
 
@@ -18,15 +26,7 @@ import Base: show, normalize!, isvalid, ==, rand, *, +, -
 # Julia/Nemo exports
 ######################################################################
 
-export EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Isogeny, Weierstrass, ShortWeierstrass, EllipticPoint, MontgomeryCurve, XonlyPoint
-
-#Exporting functions
-
-export Eval, base_curve, base_ring, a_invariants, b_invariants, c_invariants, j_invariant, areequal, isinfinity, normalized, infinity, minus, plus, isvalid, tolongWeierstrass, toshortWeierstrass, xonly, isfixedtorsion, xinfinity, fixedtorsion, times, codomain, domain, kernel, divisionpolynomial, random, cardinality, frobeniuspolynomial, any_root, randomxonly, torsionpoint, torsionxonly, base_extend, isgoodprime, goodprimes, first_isogeny, first_isogeny_x, image, squarefree_kernel
-
-#Functions we may want to turn internal
-
-export xdouble, xadd, addequalx, addgeneric, xladder, subgrouppolynomial
+export EllipticCurve, AbstractWeierstrass, ProjectivePoint
 
 ######################################################################
 # Abstract types
@@ -98,11 +98,24 @@ include("montgomerypoints.jl")
 
 
 ######################################################################
+# Edwards curves
+######################################################################
+
+include("edwards.jl")
+
+
+######################################################################
+# Points on Edwards curves
+######################################################################
+
+include("edwardspoints.jl")
+
+
+######################################################################
 # Isogenies
 ######################################################################
 
 include("isogenies.jl")
-
 
 
 ######################################################################

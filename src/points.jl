@@ -3,6 +3,9 @@
 # points.jl: projective points on elliptic curves
 ######################################################################
 
+export EllipticPoint
+
+export coordinates, base_curve, isinfinity, normalized, samefields
 
 """
 Concrete type for projective points on elliptic curves given by a projective planar equation.
@@ -16,6 +19,8 @@ type EllipticPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
 end
 
 coordinates(P::EllipticPoint) = (P.X, P.Y, P.Z)
+
+base_curve(P::EllipticPoint) = P.curve
 
 
 ######################################################################
@@ -38,10 +43,8 @@ end
 
 """
 Decide whether two projective points are given by the exact same coordinates.
-
-See also areequal.
 """
-==(P::EllipticPoint, Q::EllipticPoint) = (P.curve == Q.curve) & (P.X == Q.X) & (P.Y == Q.Y) & (P.Z == Q.Z)
+samefields(P::EllipticPoint, Q::EllipticPoint) = (P.curve == Q.curve) & (P.X == Q.X) & (P.Y == Q.Y) & (P.Z == Q.Z)
 
 """
 Describes a projective point giving its X, Y and Z coordinates, and the curve it lives on.
@@ -91,9 +94,7 @@ end
 
 """
 Decides whether two projective points are the same.
-
-See also ==.
 """
 
-areequal(P::EllipticPoint, Q::EllipticPoint) = normalized(P) == normalized(Q)
+==(P::EllipticPoint, Q::EllipticPoint) = samefields(normalized(P), normalized(Q))
 

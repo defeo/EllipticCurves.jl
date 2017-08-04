@@ -3,6 +3,16 @@
 # weierstrass.jl : curves given by weierstrass equations
 ######################################################################
 
+
+export Weierstrass, ShortWeierstrass, SeparatedWeierstrass
+
+export curvetype, a_invariants, b_invariants, c_invariants, discriminant, j_invariant, equation, projective_equation, divisionpolynomial
+
+
+######################################################################
+# Type definitions
+######################################################################
+
 """
 Concrete type for elliptic curves in long Weierstrass form over a ring.
 """

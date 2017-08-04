@@ -3,6 +3,29 @@
 # isogenies.jl: Isogenies between elliptic curves
 ######################################################################
 
+export Isogeny
+
+export domain, image, kernel, degree, rational_fractions, areisomorphic, compose, squarefree_kernel
+
+######################################################################
+# Type definitions
+######################################################################
+
+immutable IsogenyWeierstrass{T}
+	domain::AbstractWeierstrass{T}
+	degree::Integer
+	two_tors_kernel::PolyElem{T}
+	sqfkernel::PolyElem{T}
+	image::AbstractWeierstrass{T}
+end
+
+immutable IsogenyMontgomery{T}
+	domain::Montgomery{T}
+	degree::Integer
+	two_tors_kernel::PolyElem{T}
+	sqfkernel::PolyElem{T}
+	image::Montgomery{T}
+end
 
 """
 Concrete type for isogenies between Weierstrass or Montgomery elliptic curves.

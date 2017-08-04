@@ -3,6 +3,12 @@
 # weierstrasspoints.jl: Addition laws for projective points on Weierstrass curves
 ######################################################################
 
+export infinity
+
+
+######################################################################
+# Basic methods
+######################################################################
 
 """
 Get the point at infinity on an elliptic curve in Weierstrass form.
@@ -39,8 +45,9 @@ function _addgeneric{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T}
 	@assert xp != xq
 	
     denom = xq - xp
-    lambda = (yq - yp) // denom
-    nu = (yp * xq - xp * yq) // denom
+	inverse = 1//denom
+    lambda = (yq - yp) * inverse
+    nu = (yp * xq - xp * yq) * inverse
     
     Xplus = lambda^2 + a1 * lambda - a2 - xp - xq
     Yplus = -(lambda + a1) * Xplus - nu - a3
@@ -67,8 +74,9 @@ function _addequalx{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
     if iszero(denom)
 	    return infinity(E)
     else
-	    lambda = (3 * xp^2 + 2 * a2 * xp + a4 - a1 * yp) // denom
-	    nu = (- xp^3 + a4 * xp + 2 * a6 - a3 * yp) // denom
+		inverse = 1//denom
+	    lambda = (3 * xp^2 + 2 * a2 * xp + a4 - a1 * yp) * inverse
+	    nu = (- xp^3 + a4 * xp + 2 * a6 - a3 * yp) * inverse
 	    Xplus = lambda^2 + a1 * lambda - a2 - xp - xq
         Yplus = -(lambda + a1) * Xplus - nu - a3
         Zplus = one(base_ring(P))
