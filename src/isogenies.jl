@@ -41,8 +41,8 @@ type Isogeny{T}
 	s::T
 	t::T
 	image::EllipticCurve{T}
-	rationalx::Nullable{GenFrac{PolyElem{T}}}
-	rationaly::Nullable{GenFrac{PolyElem{T}}}
+	rationalx::Nullable{Frac{PolyElem{T}}}
+	rationaly::Nullable{Frac{PolyElem{T}}}
 end
 
 domain(phi::Isogeny) = phi.domain
@@ -267,7 +267,7 @@ function Isogeny{T}(E::AbstractWeierstrass{T}, degree::Integer, poly::PolyElem{T
 	
 end
 
-function Isogeny{T}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T}, phix::GenFrac{PolyElem{T}}, phiy::GenFrac{PolyElem{T}})
+function Isogeny{T}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T}, phix::Frac{PolyElem{T}}, phiy::Frac{PolyElem{T}})
 	
 end
 
@@ -299,7 +299,7 @@ function Isogeny{T}(E::AbstractWeierstrass{T}, poly::PolyElem{T})
 		w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
 		E1 = CurveType(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
 	
-		return Isogeny(E, 2 * n + 1, one(parent(poly)), poly, K(1), K(0), K(0), K(0), E1, Nullable{GenFrac{PolyElem{T}}}(), Nullable{GenFrac{PolyElem{T}}}())
+		return Isogeny(E, 2 * n + 1, one(parent(poly)), poly, K(1), K(0), K(0), K(0), E1, Nullable{Frac{PolyElem{T}}}(), Nullable{Frac{PolyElem{T}}}())
 	
 	else #there is a two-torsion part
 		throw(NotImplementedError)

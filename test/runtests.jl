@@ -24,19 +24,19 @@ P3 = EllipticPoint(QQ(2), QQ(5), QQ(1), E)
 
 P2 = EllipticPoint(QQ(-4), QQ(6), QQ(2), E)
 
-@test areequal(P1, P2)
-@test !areequal(P1, P3)
+@test P1 == P2
+@test P1 != P3
 
 P2 = EllipticPoint(QQ(-2), QQ(3), QQ(1), Eprime)
 
 @test !isvalid(P2)
-@test !areequal(P1, P2)
+@test P1 != P2
 
 P2 = infinity(E)
 
 @test isvalid(P2)
 @test isinfinity(P2)
-@test !areequal(P1, P2)
+@test P1 != P2
 
 
 

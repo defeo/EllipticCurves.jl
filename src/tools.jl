@@ -5,11 +5,11 @@ export order, roots, any_root, issquare
 # tools.jl: useful tools for EllipticCurves
 ######################################################################
 
-function (P::GenMPoly)(x, y, z)
+function (P::MPoly)(x, y, z)
 	return evaluate(P, [x, y, z])
 end
 
-function (P::GenFrac)(args...)
+function (P::Frac)(args...)
 	n = P.num
 	d = P.den
 	return n(args...) // d(args...)

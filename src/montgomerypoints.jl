@@ -4,7 +4,7 @@
 # montgomerypoints.jl: X-only points for Montgomery curves
 ######################################################################
 
-export XonlyPoint, xonly, xadd, xdouble, xinfinity
+export XonlyPoint, xonly, xadd, xdouble, xinfinity, areequal
 
 ######################################################################
 # Type definitions
