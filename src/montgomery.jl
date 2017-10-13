@@ -1,11 +1,3 @@
-module Montgomery
-
-import Nemo
-
-import ..EllipticCurves: EllipticCurve, ProjectivePoint, WeierstrassCurve, EllipticPoint, AbstractWeierstrass, ExplicitMap, base_ring, normalize!, isinfinity, normalized, tolongWeierstrass, show, ==, areequal, j_invariant, ispoint, isvalid, times
-
-export MontgomeryCurve, XonlyPoint, xonly, isfixedtorsion, xinfinity, fixedtorsion, xdouble, xadd, xladder
-
 
 ######################################################################
 # Basic methods
@@ -291,9 +283,6 @@ function times(k::Nemo.Integer, P::XonlyPoint)
 	end
 end
 
-
-
-end # module
 
 
 

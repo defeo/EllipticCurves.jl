@@ -1,11 +1,3 @@
-module Maps
-
-import Nemo
-
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, EllipticPoint, show, degree
-
-export ExplicitMap, Isogeny, Eval, domain, codomain, kernel
-
 ######################################################################
 # Concrete types for maps
 ######################################################################
@@ -89,5 +81,3 @@ function show(io::IO, phi::Isogeny)
 	show(io, phi.image)
 end
 
-
-end # module

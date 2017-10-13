@@ -1,11 +1,3 @@
-module Weierstrass
-
-
-import Nemo
-
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, ProjectivePoint, Map, ExplicitMap, Eval, Isogeny, EllipticPoint, base_ring, normalize!, isinfinity, isvalid, a_invariants, show, ==, discriminant, ispoint
-
-export WeierstrassCurve, ShortWeierstrassCurve, b_invariants, c_invariants, j_invariant, tolongWeierstrass, toshortWeierstrass, divisionpolynomial
 
 ######################################################################
 # Basic methods
@@ -26,7 +18,9 @@ function base_ring(E::WeierstrassCurve)
     return Nemo.parent(E.a1)
 end
 
-
+function ==(E1::AbstractWeierstrass, E2::AbstractWeierstrass)
+	return (a_invariants(E1) == a_invariants(E2))
+end
 
 
 """
@@ -303,12 +297,6 @@ end
 
 
 
-######################################################################
-# Modular polynomials
-######################################################################
-
-include("modularpoly.jl")
-
 
 ######################################################################
 # BMSS algorithm
@@ -423,7 +411,7 @@ Build an isogeny of given degree between two curves, assuming a normalized separ
 
 function Isogeny{T<:Nemo.FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
 	degree::Nemo.Integer)
-	poly = BMSS.kernelpoly(E1, E2, degree)
+	poly = kernelpoly(E1, E2, degree)
 	return Isogeny(E1, degree, poly, E2)
 end
 
@@ -442,8 +430,5 @@ function multiplication_explicit(E::AbstractWeierstrass, m::Nemo.Integer)
 	return ExplicitMap(E, E, P::EllipticPoint -> times(m, P))
 end
 
-
-
-end # module
 
 

@@ -1,10 +1,3 @@
-module Points
-
-import Nemo
-
-import ..EllipticCurves: EllipticCurve, ProjectivePoint, AbstractWeierstrass, a_invariants, show, normalize!, isvalid, ==, base_ring, areequal, ispoint
-
-export EllipticPoint, base_ring, isinfinity, normalized, areequal, infinity, minus, addgeneric, addequalx, plus, isvalid, times
 
 ######################################################################
 # Basic methods for projective points
@@ -235,5 +228,3 @@ function ladder(m::Nemo.Integer, P::EllipticPoint)
 	return p0
 end
 
-
-end #module

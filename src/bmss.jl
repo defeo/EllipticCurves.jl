@@ -1,12 +1,3 @@
-module BMSS
-
-import Nemo
-
-import Nemo: Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, parent, gen, base_ring, shift_left, shift_right, degree, coeff, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!, sqrt
-
-import ..Weierstrass: EllipticCurve, a_invariants, AbstractWeierstrass, divisionpolynomial
-
-
 
 ######################################################################
 # Computing with polynomials
@@ -322,5 +313,3 @@ function kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeiers
     return evenpart * sqrtoddpart
 end
 
-
-end #module

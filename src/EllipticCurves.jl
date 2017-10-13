@@ -1,9 +1,9 @@
 module EllipticCurves
 
 import Nemo
-import Nemo: base_ring, discriminant, degree
+import Nemo: base_ring, discriminant, degree, PolynomialRing, order, FinField, FinFieldElem, PolyElem, FiniteField, roots, issquare, parent, convert, trace, degree, coeff, characteristic, jacobi, Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, gen, shift_left, shift_right, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!, sqrt, isprime, ZZ
 
-import Base: show, normalize!, isvalid, ==
+import Base: show, normalize!, isvalid, ==, rand
 
 #Exporting types
 
@@ -26,14 +26,14 @@ Abstract classes for elliptic curves.
 
 Every elliptic curve inherits from this.
 """
-abstract EllipticCurve{T<:Nemo.RingElem}
+abstract type EllipticCurve{T<:Nemo.RingElem} end
 
 """
 Abstract classes for elliptic curves in Weierstrass form.
 
 Every elliptic curve in Weierstrass form inherits from this.
 """
-abstract AbstractWeierstrass{T<:Nemo.RingElem} <: EllipticCurve{T}
+abstract type AbstractWeierstrass{T<:Nemo.RingElem} <: EllipticCurve{T} end
 
 
 """
@@ -41,42 +41,21 @@ Abstract classes for elliptic curve points.
 
 Every elliptic curve point inherits from this.
 """
-abstract ProjectivePoint{T<:Nemo.RingElem}
+abstract type ProjectivePoint{T<:Nemo.RingElem} end
 
 """
 Abstract class for maps.
 
 Every map between elliptic curves inherits from this.
 """
-abstract Map{T<:Nemo.RingElem}
+abstract type Map{T<:Nemo.RingElem} end
 
-
-######################################################################
-# Abstract functions
-######################################################################
-
-
-function a_invariants(E::AbstractWeierstrass)
-end
-
-
-function ==(E1::AbstractWeierstrass, E2::AbstractWeierstrass)
-	return (a_invariants(E1) == a_invariants(E2))
-end
-
-function areequal(P::ProjectivePoint, Q::ProjectivePoint)
-end
-
-function ispoint{T}(a::T, b::T, c::T, E::EllipticCurve{T})
-end
 
 ######################################################################
 # Points on elliptic curves
 ######################################################################
 
 include("points.jl")
-
-using .Points
 
 
 ######################################################################
@@ -85,9 +64,6 @@ using .Points
 
 include("maps.jl")
 
-using .Maps
-
-
 
 ######################################################################
 # Weierstrass curves
@@ -95,7 +71,6 @@ using .Maps
 
 include("weierstrass.jl")
 
-using .Weierstrass
 
 ######################################################################
 # Montgomery curves
@@ -103,17 +78,12 @@ using .Weierstrass
 
 include("montgomery.jl")
 
-using .Montgomery
-
 
 ######################################################################
 # Over finite fields
 ######################################################################
 
-
 include("finfields.jl")
-
-using .Finite
 
 
 end # module

@@ -1,13 +1,3 @@
-module Finite
-
-import Base: rand
-
-import Nemo
-import Nemo: PolynomialRing, order, FinField, FinFieldElem, PolyElem, FiniteField, roots, issquare, parent, convert, trace, degree, coeff, characteristic, jacobi
-
-import ..EllipticCurves: EllipticCurve, AbstractWeierstrass, MontgomeryCurve, WeierstrassCurve, ShortWeierstrassCurve, EllipticPoint, XonlyPoint, Isogeny, base_ring, times, isinfinity, plus, xinfinity, a_invariants, infinity, areequal, tolongWeierstrass, toshortWeierstrass, codomain, j_invariant
-
-export trace, random, cardinality, frobeniuspolynomial, any_root, randomxonly, torsionpoint, torsionxonly, base_extend, isgoodprime, goodprimes, subgrouppolynomial, first_isogeny, first_isogeny_x
 
 ######################################################################
 # Useful functions for finite fields
@@ -47,7 +37,7 @@ end
 #Computing roots of polynomials over finite fields
 
 function roots{T<:FinFieldElem}(f::PolyElem{T})
-	fac = factor(f)
+	fac = Nemo.factor(f)
 	res = Dict{T, Int}()
 	for index in fac
 		P, exp = index
@@ -310,7 +300,7 @@ end
 function isgoodprime{T<:FinFieldElem}(E::EllipticCurve{T}, l::Int, Card::Nemo.fmpz)
 	poly = frobeniuspolynomial(E, Card)
 	discr = Nemo.discriminant(poly)
-	if !isprime(l) | jacobi(discr, l) != 1
+	if !isprime(ZZ(l)) | jacobi(discr, l) != 1
 		return (false, 0)
 	else
 		Fl, _ = Nemo.FiniteField(l, 1, "alpha")
@@ -408,8 +398,6 @@ function first_isogeny_x{T<:FinFieldElem}(E::MontgomeryCurve{T}, l::Int, Cards::
 	return Isogeny(E, poly)
 end
 
-
-end #module
 
 
 	
