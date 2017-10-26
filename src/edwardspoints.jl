@@ -77,11 +77,11 @@ function isvalid(P::EdwardsPoint)
 	return (P.Z != 0) && Eq(P.X, P.Y, P.Z) == 0
 end
 
-function ==(P::EdwardsPoint, Q::EdwardsPoint)
+function samefields(P::EdwardsPoint, Q::EdwardsPoint)
 	return (P.X == Q.X) && (P.Y == Q.Y) && (P.Z == Q.Z) && (P.curve == Q.curve)
 end
 
-function areequal(P::EdwardsPoint, Q::EdwardsPoint)
+function ==(P::EdwardsPoint, Q::EdwardsPoint)
 	c = P.Z // Q.Z
 	return (P.X = c * Q.X) && (P.Y = c * Q.Y) && (P.curve == Q.curve)
 end
@@ -91,11 +91,11 @@ function isvalid(P::ExtendedEdwardsPoint)
 	return isvalid(Q) && (P.U * P.Z == P.X * P.Y)
 end
 	
-function ==(P::ExtendedEdwardsPoint, Q::ExtendedEdwardsPoint)
+function samefields(P::ExtendedEdwardsPoint, Q::ExtendedEdwardsPoint)
 	return (P.X == Q.X) && (P.Y == Q.Y) && (P.Z == Q.Z) && (P.U == Q.U) && (P.curve == Q.curve)
 end
 
-function areequal(P::ExtendedEdwardsPoint, Q::ExtendedEdwardsPoint)
+function ==(P::ExtendedEdwardsPoint, Q::ExtendedEdwardsPoint)
 	c = P.Z // Q.Z
 	return (P.X = c * Q.X) && (P.Y = c * Q.Y) && (P.U == Q.U) && (P.curve == Q.curve)
 end
@@ -110,7 +110,7 @@ function neutral(E::Edwards)
 	return EdwardsPoint(zero(K), one(K), one(K))
 end
 
-isneutral(P::EdwardsPoint) = areequal(P, neutral(P.curve))
+isneutral(P::EdwardsPoint) = P == neutral(P.curve)
 
 extended_neutral(E::Edwards) = ExtendedEdwardsPoint(neutral(E))
 

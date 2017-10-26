@@ -4,47 +4,30 @@ using EllipticCurves
 
 using Base.Test
 
+######################################################################
+# Testing tools.jl
+######################################################################
+
+#This file should be ok if the tests below pass
+
 
 ######################################################################
 # Testing weierstrass.jl
 ######################################################################
 
+print("Testing weierstrass.jl... ")
 
-#Example is taken from Silverman 1 p.59.
+E1 = Weierstrass(QQ(0), QQ(0), QQ(0), QQ(4), QQ(5))
+E2 = ShortWeierstrass(QQ(0), QQ(0), QQ(0), QQ(4), QQ(5))
+E3 = SeparatedWeierstrass(QQ(0), QQ(0), QQ(0), QQ(4), QQ(5))
+E4 = EllipticCurve(QQ(4), QQ(5))
 
-print("Testing basic methods of elliptic curves and projective points...\n")
+@test base_ring(E1) == QQ
+@test base_ring(E2) == QQ
+@test base_ring(E3) == QQ
+@test E1 == E2 == E3 == E4
 
-E = ShortWeierstrass(QQ(0), QQ(17))
-Eprime = ShortWeierstrass(QQ(0), QQ(16))
-P1 = EllipticPoint(QQ(-2), QQ(3), QQ(1), E)
-P3 = EllipticPoint(QQ(2), QQ(5), QQ(1), E)
-
-@test isvalid(P1)
-@test isvalid(P3)
-
-P2 = EllipticPoint(QQ(-4), QQ(6), QQ(2), E)
-
-@test P1 == P2
-@test P1 != P3
-
-P2 = EllipticPoint(QQ(-2), QQ(3), QQ(1), Eprime)
-
-@test !isvalid(P2)
-@test P1 != P2
-
-P2 = infinity(E)
-
-@test isvalid(P2)
-@test isinfinity(P2)
-@test P1 != P2
-
-
-
-#Testing invariants; values are given by Sage
-
-print("Testing invariants and model changes...\n")
-
-
+E = EllipticCurve(QQ(0), QQ(17))
 @test a_invariants(E) == (QQ(0), QQ(0), QQ(0), QQ(0), QQ(17))
 @test b_invariants(E) == (QQ(0), QQ(0), QQ(68), QQ(0))
 @test c_invariants(E) == (QQ(0), QQ(-14688))
@@ -52,206 +35,193 @@ print("Testing invariants and model changes...\n")
 @test j_invariant(E) == QQ(0)
 @test isvalid(E)
 
-E2 = Weierstrass(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
+eq = equation(E)
+Y = gen(parent(eq))
+X = gen(base_ring(eq))
+@test eq == Y^2 - X^3 - 17
 
-@test a_invariants(E2) == (QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
-@test b_invariants(E2) == (QQ(9), QQ(11), QQ(33), QQ(44))
-@test c_invariants(E2) == (QQ(-183), QQ(-4293))
-@test discriminant(E2) == QQ(-14212)
-@test j_invariant(E2) == QQ(6128487//14212)
-@test isvalid(E2)
+preq = projective_equation(E)
+X, Y, Z = gens(parent(preq))
+@test preq == Z * Y^2 - X^3 - 17 * Z^3
 
+f3 = divisionpolynomial(E, 3)
+f9 = divisionpolynomial(E, 9)
+@test f9 % f3 == 0
 
+print("done\n")
 
-
-#Testing changes of variables
-
-E1 = ShortWeierstrass(QQ(0), QQ(17))
-E2 = Weierstrass(QQ(0), QQ(0), QQ(0), QQ(0), QQ(17))
-P2 = EllipticPoint(QQ(-2), QQ(3), QQ(1), E2)
-#E3, phi, psi = tolongWeierstrass(E)
-
-#@test E2 == E3
-#@test Eval(phi, P1) == P2
-#@test Eval(psi, P2) == P1
-
-#E2 = Weierstrass(QQ(1), QQ(2), QQ(3), QQ(4), QQ(6))
-#E3, _, _ = toshortWeierstrass(E2)
-
-#@test j_invariant(E2) == j_invariant(E3)
-
-
-
-#Testing isogenies between Weierstrass curves over the rationals
-
-print("Testing isogenies...\n")
-
-E = ShortWeierstrass(QQ(1), QQ(2))
-
-P1 = divisionpolynomial(E, 1)
-P7 = divisionpolynomial(E, 7)
-
-@test P1 == 1
-@test degree(P7) == (7^2 - 1) // 2
-
-Q = 1//lead(P7) * P7
-phi = Isogeny(E, Q)
-Eprime = image(phi)
-d = degree(phi)
-
-
-@test d == 7^2
-#= Very long
-psi = Isogeny(E, Eprime, d)
-
-@test kernel(psi) == Q
-=#
-id = Isogeny(E, E, 1)
-
-@test kernel(id) == 1
-
-#Over small finite fields
-
-F, x = FiniteField(233, 1, "x")
-E = ShortWeierstrass(F(1), F(2))
-
-P1 = divisionpolynomial(E, 1)
-P7 = divisionpolynomial(E, 7)
-
-@test P1 == 1
-@test degree(P7) == (7^2 - 1) // 2
-
-Q = 1//lead(P7) * P7
-phi = Isogeny(E, Q)
-Eprime = image(phi)
-d = degree(phi)
-
-@test d == 7^2
-
-psi = Isogeny(E, Eprime, d)
-
-#Over large finite fields
-
-@test kernel(psi) == Q^2
-@test squarefree_kernel(psi) == Q
-
-p = ZZ(3273390607896141870013189696827599152216642046043064789483291368096133796404674554883270092325904157150886684127560071009217256545885393053328527589431)
-
-F, x = FiniteField(p, 1, "x")
-E = ShortWeierstrass(F(1), F(2))
-
-P1 = divisionpolynomial(E, 1)
-P7 = divisionpolynomial(E, 7)
-
-@test P1 == 1
-@test degree(P7) == (7^2 - 1) // 2
-
-Q = 1//lead(P7) * P7
-phi = Isogeny(E, Q)
-Eprime = image(phi)
-d = degree(phi)
-
-@test d == 7^2
-
-psi = Isogeny(E, Eprime, d)
-
-@test kernel(psi) == Q^2
-@test squarefree_kernel(psi) == Q
 
 ######################################################################
 # Testing points.jl
 ######################################################################
 
+print("Testing points.jl... ")
 
-#Addition laws for points on Weierstrass curves. Example is from Silverman 1 p.59
+E = EllipticCurve(QQ(0), QQ(17))
+P1 = Point(QQ(-2), QQ(3), QQ(1), E)
+P2 = Point(QQ(-4), QQ(6), QQ(2), E)
+P3 = Point(QQ(2), QQ(5), QQ(1), E)
 
-print("Testing addition laws...\n")
+@test coordinates(P1) == (-2, 3, 1)
+@test base_curve(P1) == E
+@test base_ring(P1) == QQ
+@test isvalid(P1)
+@test isvalid(P3)
+
+@test samefields(normalized(P2), P1)
+@test P1 == P2
+
+print("done\n")
 
 
-E = ShortWeierstrass(QQ(0), QQ(17))
-P1 = EllipticPoint(QQ(-2), QQ(3), QQ(1), E)
-P2 = EllipticPoint(QQ(-1), QQ(4), QQ(1), E)
-P3 = EllipticPoint(QQ(2), QQ(5), QQ(1), E)
-Pinf = infinity(E)
+######################################################################
+# Testing weierstrasspoints.jl
+######################################################################
 
-@test P1 + P1 == EllipticPoint(QQ(8), QQ(-23), QQ(1), E)
-@test Pinf + Pinf == Pinf
+print("Testing weierstrasspoints.jl... ")
+
+#Example is taken from Silverman 1 p.59.
+
+E = EllipticCurve(QQ(0), QQ(17))
+P1 = Point(QQ(-2), QQ(3), QQ(1), E)
+P2 = Point(QQ(-1), QQ(4), QQ(1), E)
+P3 = Point(QQ(2), QQ(5), QQ(1), E)
+Pinf = zero(E)
+
+@test P1 + P1 == 2 * P1 == Point(QQ(8), QQ(-23), QQ(1), E)
+@test Pinf + Pinf == 2 * Pinf == Pinf
 @test P1 + Pinf == Pinf + P1 == P1
-@test P2 + P2 == EllipticPoint(QQ(137//64), QQ(-2651//512), QQ(1), E)
-@test P2 + P3 == EllipticPoint(QQ(-8//9), QQ(-109//27), QQ(1), E)
+@test P2 + P2 == 2 * P2 == Point(QQ(137//64), QQ(-2651//512), QQ(1), E)
+@test P2 + P3 == Point(QQ(-8//9), QQ(-109//27), QQ(1), E)
+@test -P3 == Point(QQ(2), QQ(-5), QQ(1), E)
+@test P3 - P3 == 0 * P3 == Pinf
+@test P1 - P3 == 1 * P1 + (-1) * P3 == Point(QQ(4), QQ(9), QQ(1), E)
 
-mP3 = -P3
-
-@test mP3 == EllipticPoint(QQ(2), QQ(-5), QQ(1), E)
-@test P3 + mP3 == Pinf
-@test P1 + mP3 == P1 - P3 == EllipticPoint(QQ(4), QQ(9), QQ(1), E)
-
-
+print("done\n")
 
 
 ######################################################################
 # Testing montgomery.jl
 ######################################################################
 
-print("Testing Montgomery curves...\n")
+#Really trivial code, no need for testing
 
-#Testing basic functions
+######################################################################
+# Testing montgomerypoints.jl
+######################################################################
 
+print("Testing montgomerypoints.jl... ")
 
 E = Montgomery(QQ(7), QQ(1))
-P1 = EllipticPoint(QQ(1), QQ(3), QQ(1), E)
-P0 = EllipticPoint(QQ(0), QQ(0), QQ(1), E)
-
 @test base_ring(E) == QQ
 @test j_invariant(E) == 24918016//45
-
-@test isvalid(P1) & isvalid(P2)
 @test isvalid(E)
 
+P1 = Point(QQ(1), QQ(3), QQ(1), E)
+P0 = Point(QQ(0), QQ(0), QQ(1), E)
+@test isvalid(P1) & isvalid(P2)
 
-#Testing model changes
+xP1 = XZPoint(P1)
+xP0 = XZPoint(P0)
+xinf = XZzero(E)
+
+@test isfixedtorsion(xP0)
+@test !isfixedtorsion(xP1)
+@test fixedtorsion(E) == xP0
+
+@test xdouble(xP0) == xinf
+@test xdouble(xP1) == xP0
+@test xdouble(xinf) == xinf
+
+@test xadd(xP1, xP0, xP1) == xP1
+
+#Scalar multiplications
+
+@test 0 * xP1 == xinf
+@test 1 * xP1 == xP1
+@test 2 * xP1 == xP0
+@test 1 * xP0 == xP0
+@test 2 * xP0 == xinf
+@test 45 * xinf == xinf
+@test 4 * xP1 == xinf
+
+@test 8 * xP1 == xinf
+
+print("done\n")
+
+######################################################################
+# Testing edwards.jl
+######################################################################
+
+#Do we really want to keep this code ?
+
+######################################################################
+# Testing edwardspoints.jl
+######################################################################
+
+#Do we really want to keep this code ?
+
+######################################################################
+# Testing pairings.jl
+######################################################################
+
+#Do we really want to keep this code ?
+
+######################################################################
+# Testing isogenies.jl
+######################################################################
+
+print("Testing isogenies.jl... ")
+
+F, x = FiniteField(101, 1, "x")
+E = EllipticCurve(F(1), F(3))
+P = Point(F(3), F(29), F(1), E)
+Q = Point(F(4), F(24), F(1), E) #another point
+
+#P is a point of three-torsion
+@test isvalid(P)
+@test 3 * P == zero(E)
+@test 3 * Q != zero(E)
+
+f3 = divisionpolynomial(E, 3)
+@test f3(P.X) == 0
+
+phi = Isogeny(E, P, 3)
+
+@test domain(phi) == E
+@test image(phi) == EllipticCurve(F(24), F(24)) #given by Sage
+@test phi(P) == zero(image(phi))
+@test isvalid(phi(Q))
+@test phi(Q) == Point(F(91), F(20), F(1), image(phi))
+
+K = subgroup(P, 3)
+
+@test kernel(phi) == K
+@test Isogeny(E, K) == phi
+@test Isogeny(E, 3, image(phi)) == phi
+
+@test isvalid(phi)
+psi = dual(phi)
 
 
-Z = Nemo.ZZ
-#E2, _, _ = tolongWeierstrass(E)
+@test compose(phi, psi) == multiplication_isogeny(E, 3)
+@test multiplication_isogeny(E, 3)(P) == 3 * P
 
-#@test a_invariants(E2) == (0, 7, 0, 1, 0)
+id = Isogeny(E, 1, E)
+@test kernel(id) == 1
+@test id(P) == P
 
-#Testing x-only arithmetic
+@test isvalid(psi)
+@test isvalid(id)
 
+phix, phiy = rational_fractions(phi)
+@test Isogeny(E, image(phi), phix, phiy) == phi
 
-xP1 = xonly(P1)
-xP0 = xonly(P0)
-xinf = xinfinity(E)
+print("done\n")
 
-#@test isfixedtorsion(xP0)
-#@test !isfixedtorsion(xP1)
+#Isogeny(E, d, jprime) is not tested, since there are no modular polynomials yet
 
 #=
-No addition for complete projective points on Montgomery curves yet
-@test plus(P0, P0) == infinity(E)
-@test plus(P1, P1) == P0
-=#
-
-@test areequal(xdouble(xP0), xinf)
-@test areequal(xdouble(xP1), xP0)
-@test areequal(xdouble(xinf), xinf)
-
-
-
-@test areequal(xadd(xP1, xP0, xP1), xP1)
-
-
-@test areequal(0 * xP1, xinfinity(E))
-@test areequal(1 * xP1, xP1)
-@test areequal(2 * xP1, xP0)
-@test areequal(1 * xP0, xP0)
-@test areequal(2 * xP0, xinfinity(E))
-@test areequal(45 * xinfinity(E), xinfinity(E))
-@test areequal(4 * xP1, xinfinity(E))
-
-@test areequal(8 * xP1, xinfinity(E))
-
 
 ######################################################################
 # Testing finite.jl
@@ -304,7 +274,6 @@ Card = Cards[1]
 @test order == 1
 
 
-#=
 phi = first_isogeny_x(E, 5, Cards)
 @test j_invariant(image(phi)) == F(76) #Given by Sage
 

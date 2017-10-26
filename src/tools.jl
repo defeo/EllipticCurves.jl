@@ -5,15 +5,25 @@ export order, roots, any_root, issquare
 # tools.jl: useful tools for EllipticCurves
 ######################################################################
 
-function (P::MPoly)(x, y, z)
-	return evaluate(P, [x, y, z])
+function (P::GenMPoly)(args...)
+	return evaluate(P, [args...])
 end
 
-function (P::Frac)(args...)
+function (P::GenFrac)(args...)
 	n = P.num
 	d = P.den
 	return n(args...) // d(args...)
 end
+
+function numerator(P::GenFrac)
+	return P.num
+end
+
+function denominator(P::GenFrac)
+	return P.den
+end
+
+
 
 ######################################################################
 # Useful functions for finite fields
@@ -86,7 +96,7 @@ function convert(x::FinFieldElem, K::FinField)
 end
 
 """
-When used with polynomials, converts each coefficient.
+When used with polynomials, convert each coefficient.
 """
 function convert{T<:FinFieldElem}(P::PolyElem{T}, K::FinField)
 	A, Y = PolynomialRing(K, "Y")
@@ -97,7 +107,9 @@ function convert{T<:FinFieldElem}(P::PolyElem{T}, K::FinField)
 	return poly
 end
 
-
+function sqrt(P::PolyElem)
+	return gcd(P, derivative(P))
+end
 
 
 

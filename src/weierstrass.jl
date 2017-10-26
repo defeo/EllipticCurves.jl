@@ -4,9 +4,9 @@
 ######################################################################
 
 
-export Weierstrass, ShortWeierstrass, SeparatedWeierstrass
+export Weierstrass, ShortWeierstrass, SeparatedWeierstrass, EllipticCurve
 
-export curvetype, a_invariants, b_invariants, c_invariants, discriminant, j_invariant, equation, projective_equation, divisionpolynomial
+export curvetype, a_invariants, b_invariants, c_invariants, discriminant, j_invariant, equation, projective_equation, divisionpolynomial, coordinate_ring
 
 
 ######################################################################
@@ -61,6 +61,22 @@ function SeparatedWeierstrass{T}(a1::T, a2::T, a3::T, a4::T, a6::T)
 end
 
 ######################################################################
+# Calling with the 'EllipticCurve' constructor
+######################################################################
+
+function EllipticCurve{T}(a4::T, a6::T)
+	return ShortWeierstrass(a4, a6)
+end
+
+function EllipticCurve{T}(a2::T, a4::T, a6::T)
+	return SeparatedWeierstrass(a2, a4, a6)
+end
+	
+function EllipticCurve{T}(a1::T, a2::T, a3::T, a4::T, a6::T)
+	return Weierstrass(a1, a2, a3, a4, a6)
+end
+
+######################################################################
 # Basic methods
 ######################################################################
 
@@ -92,7 +108,7 @@ end
 Get a description of an elliptic curve in short Weierstrass form.
 """
 function show(io::IO, E::SeparatedWeierstrass)
-    print(io, "Elliptic Curve in separated Weierstrass form y² = x³ $(E.a2) + $(E.a4) x + $(E.a6)  over ")
+    print(io, "Elliptic Curve in separated Weierstrass form y² = x³ + $(E.a2) x² + $(E.a4) x + $(E.a6)  over ")
     show(io, base_ring(E))
 end
 
@@ -172,9 +188,15 @@ function j_invariant(E::AbstractWeierstrass)
 	return c4^3 // disc
 end
 
-function equation(E::AbstractWeierstrass)
+function equation(E::AbstractWeierstrass) #use nested polynomial rings for efficient reduction
 	K = base_ring(E)
-	R, (X, Y) = PolynomialRing(K, ["X", "Y"])
+	RX, X = PolynomialRing(K, "X")
+	RXY, Y = PolynomialRing(RX, "Y")
+	a1, a2, a3, a4, a6 = a_invariants(E)
+	return Y^2 + a1 * X * Y + a3 * Y - X^3 - a2 * X^2 - a4 * X - a6
+end
+
+function equation(E::AbstractWeierstrass, X, Y)
 	a1, a2, a3, a4, a6 = a_invariants(E)
 	return Y^2 + a1 * X * Y + a3 * Y - X^3 - a2 * X^2 - a4 * X - a6
 end
@@ -301,6 +323,16 @@ function divisionpolynomial{T}(E::AbstractWeierstrass{T}, m::Nemo.Integer, two_t
 	end
 end
 
+######################################################################
+# Coordinate ring
+######################################################################
 
+function coordinate_ring(E::AbstractWeierstrass)
+	Eq = equation(E)
+	Y = gen(parent(Eq))
+	X = gen(base_ring(Eq))
+	RXY = parent(Eq)
+	return ResidueRing(RXY, Eq), X, Y
+end
 
 

@@ -3,59 +3,42 @@
 # isogenies.jl: Isogenies between elliptic curves
 ######################################################################
 
+#Only odd-degree isogenies are implemented; create a special class for degree 2 isogenies
+
 export Isogeny
 
-export domain, image, kernel, degree, rational_fractions, areisomorphic, compose, squarefree_kernel
+export domain, image, kernel, degree, rational_fractions, areisomorphic, compose, squarefree_kernel, isomorphism_coefficients, subgroup, dual, isomorphism, find_isomorphism, multiplication_isogeny
 
 ######################################################################
 # Type definitions
 ######################################################################
 
-immutable IsogenyWeierstrass{T}
-	domain::AbstractWeierstrass{T}
-	degree::Integer
-	two_tors_kernel::PolyElem{T}
-	sqfkernel::PolyElem{T}
-	image::AbstractWeierstrass{T}
-end
-
-immutable IsogenyMontgomery{T}
-	domain::Montgomery{T}
-	degree::Integer
-	two_tors_kernel::PolyElem{T}
-	sqfkernel::PolyElem{T}
-	image::Montgomery{T}
-end
-
 """
 Concrete type for isogenies between Weierstrass or Montgomery elliptic curves.
-In the case of odd degree, the kernel is assumed to be squarefree.
+Only odd degree isogenies are currently implemented.
+The kernel polynomial of an l-isogeny is a monic, squarefree polynomial of degree (l-1)/2.
+In the rational fractions, the usual factor y in the ordinate is dropped in order to use only univariate polynomials.
 """
 type Isogeny{T}
 	domain::EllipticCurve{T}
 	degree::Integer
-	two_torsion_kernel::PolyElem{T}
-	sqfoddkernel::PolyElem{T}
+	kernel::PolyElem{T}
 	u::T
 	r::T
 	s::T
 	t::T
 	image::EllipticCurve{T}
-	rationalx::Nullable{Frac{PolyElem{T}}}
-	rationaly::Nullable{Frac{PolyElem{T}}}
+	x::Nullable{GenFrac{U}} where U <: PolyElem{T}
+	y::Nullable{GenFrac{U}} where U <: PolyElem{T}
 end
+
+base_ring(phi::Isogeny) = base_ring(domain(phi))
 
 domain(phi::Isogeny) = phi.domain
 
 image(phi::Isogeny) = phi.image
 
-two_torsion_kernel(phi::Isogeny) = phi.two_torsion_kernel
-
-kernel(phi::Isogeny) = phi.two_torsion_kernel * (phi.sqfoddkernel)^2
-
-squarefree_kernel(phi::Isogeny) = phi.two_torsion_kernel * phi.sqfoddkernel
-
-squarefree_odd_kernel(phi::Isogeny) = phi.sqfoddkernel
+kernel(phi::Isogeny) = phi.kernel
 
 degree(phi::Isogeny) = phi.degree
 
@@ -74,8 +57,8 @@ function rational_fractions(phi::Isogeny)
 		return (phix, phiy)
 	catch
 		fx, fy = _compute_rational_fractions(phi)
-		phi.rational_x = Nullable(fx)
-		phi.rational_y = Nullable(fy)
+		phi.x = Nullable(fx)
+		phi.y = Nullable(fy)
 		return fx, fy
 	end
 end
@@ -108,15 +91,17 @@ end
 """
 Decide if an isogeny has valid formulas.
 """
-
 function isvalid(phi::Isogeny)
 	E1 = domain(phi)
 	E2 = image(phi)
-	R1 = coordinate_ring(E1)
-	P2 = equation(E2)
-	X1, Y1 = gens(R1)
+	a11, a21, a31, a41, a61 = a_invariants(E1) #we have a1 = a3 = 0
+	a12, a22, a32, a42, a62 = a_invariants(E2) #we have a1 = a3 = 0
 	phix, phiy = rational_fractions(phi)
-	return P2(phix(X1, Y1), phiy(X1, Y1)) == 0
+	X = gen(base_ring(parent(phix)))
+	lhs = phiy^2 * (X^3 + a21 * X^2 + a41 * X + a61)
+	rhs = (phix^3 + a22 * phix^2 + a42 * phix + a62)
+	test = lhs - rhs
+	return test==0
 end
 	
 
@@ -129,19 +114,21 @@ end
 Get the evaluation of an isogeny on a point.
 """
 function (phi::Isogeny)(P::EllipticPoint)
-	Q = normalize(P)
+	Q = normalized(P)
 	x1 = Q.X
 	y1 = Q.Y
 	phix, phiy = rational_fractions(phi)
 	try
-		x2 = phix(x1, y1)
-		y2 = phiy(x1, y1)
+		x2 = phix(x1)
+		y2 = y1 * phiy(x1)
 		return EllipticPoint(x2, y2, one(base_ring(Q)), image(phi))
 	catch
 		return infinity(image(phi))
 	end
 end
 
+
+#DOES NOT WORK if u or t != 0...
 """
 Compute the rational functions defining an isogeny
 """
@@ -158,82 +145,34 @@ function _normalized_rational_fractions(phi::Isogeny)
 	b2, b4, b6, b8 = b_invariants(E)
 	a1, a2, a3, a4, a6 = a_invariants(E)
 	
-	if l==1
-		A, (x, y) = PolynomialRing(K, ["x", "y"])
+	if l==1 #phi is an isomorphism
+		A, x = PolynomialRing(K, "x")
 		Ffield = FractionField(A)
-		return (Ffield(x), Ffield(y))
+		return (Ffield(x), Ffield(1))
 	
-	elseif isodd(l)
-		s1 = - coeff(kpoly, n-1)
+	else #remember l is odd
+		
 		n = div(l - 1, 2)
-		kpoly = squarefree_kernel(phi)
-		kpolysquare = kernel(phi)
+		kpoly = kernel(phi)
+		s1 = - coeff(kpoly, n-1)
+		kpolysquare = kpoly^2
 		dkpoly = derivative(kpoly)
 		d2kpoly = derivative(dkpoly)
 		
-		psi2 = parent(kpoly)(divisionpolynomial(E, -1))
-		X = gen(parent(kpoly))
-		phi = psi2 * (dkpoly^2 - d2kpoly * kpoly) - (6 * X^2 + b2 * X + b4) * dkpoly * kpoly + (l * X - 2 * s1) * kpolysquare
+		FX = parent(kpoly)
+		psi2 = FX(divisionpolynomial(E, -1))
+		X = gen(FX)
+		N = psi2 * (dkpoly^2 - d2kpoly * kpoly) - (6 * X^2 + b2 * X + b4) * dkpoly * kpoly + (l * X - 2 * s1) * kpolysquare
 		
 		if K(2) != 0
-			dphi = derivative(phi)
-			psi2 = divisionpolynomial(E, 2, 1) #bivariate polynomial
-			A = parent(phi)
-			x, y = gens(A)
-			
-			omega = (1 // K(2)) * (dphi * kpoly)(x) * psi2 - (phi * dkpoly)(x) * psi2 + (1 // K(2)) * ((a1 * phi + a3 * kpolysquare) * kpoly)(x)
-			
-			return (phi(x) // kpolysquare(x) , omega // (kpoly^3)(x))
+			dN = derivative(N)
+			omega = dN * kpoly - 2 * N * dkpoly    #+ (1 // K(2)) * ((a1 * N + a3 * kpolysquare) * kpoly)(x): we force to have a1 = a3 = 0
+			return (N // kpolysquare , omega // (kpoly * kpolysquare))
 			
 		else #K has characteristic 2
 			throw(NotImplementedError("Rational fractions not yet implemented in characteristic 2"))
 		end
-	
-	else #l is even : we decompose "odd" and 2-torsion parts
-		two_kernel = two_torsion_kernel(phi)
-		oddkernel = squarefree_odd_kernel(phi)
-		
-		if degree(oddkernel) > 0
-			(phi2, phiodd) = decompose_two_torsion(phi)
-			phi2x, phi2y = rational_fractions(phi2)
-			phioddx, phioddy = rational_fractions(phiodd)
-			
-			return (phioddx(phi2x, phi2y), phioddy(phi2x, phi2y))
-			
-		else #kernel of phi is contained in the two-torsion subgroup
-			if degree(two_kernel) == 1
-				x0 = - coeff(two_kernel, 0)
-				if K(2) != 0
-					y0 = (- a1 * x0 + a3) // 2
-				else #K has characteristic 2
-					throw(NotImplementedError("Rational fractions not yet implemented in characteristic 2"))
-				end
-				
-				c = 3 * x0^2 + 2 * a2 * x0 + a4 - a1 * y0
-				A, (x, y) = PolynomialRing(K, ["x", "y"])
-				Ffield = FractionField(A)
-				return (x + Ffield(c)//(x - x0) , y - c * (a1 * (x - x0) + (y - y0)) // (x - x0)^2)
-			
-			else #two_kernel is the full 2-torsion, and car(K) != 2 since isogenies are assumed to be separable here
-				s1 = -coeff(two_kernel, 2)
-				dtwo_kernel = derivative(two_kernel)
-				d2two_kernel = derivative(dtwo_kernel)
-				phi = dtwo_kernel^2 - 2 * d2two_kernel * two_kernel + (4 * gen(parent(two_kernel)) - s1) * two_kernel^2
-				
-				psi2 = divisionpolynomial(E, 2, 1)
-				A = parent(psi2)
-				x, y = gens(A)
-				
-				omega = (1 // K(2)) * psi2 * (derivative(phi) * two_kernel - phi * dtwo_kernel)(x) - (1 // K(2)) * (a1 * phi + a3 * two_kernel)(x)
-				return (phi(x) // (two_kernel^2)(x) , omega // (two_kernel^3)(x))
-			
-			end
-		end
 	end	
-end
-
-function decompose_two_torsion(phi::Isogeny)
-	throw(NotImplementedError)
 end
 
 ######################################################################
@@ -249,8 +188,8 @@ function compose(phi1::Isogeny, phi2::Isogeny)
 	phi1x, phi1y = rational_fractions(phi1)
 	phi2x, phi2y = rational_fractions(phi2)
 	
-	resx = phi2x(phi1x, phi1y)
-	resy = phi2y(phi2x, phi2y)
+	resx = phi2x(phi1x)
+	resy = phi1y * phi2y(phi1x)
 	
 	return Isogeny(E1, E3, resx, resy)
 end
@@ -263,12 +202,41 @@ end
 """
 Build an isogeny given its domain, kernel, degree, and image
 """
-function Isogeny{T}(E::AbstractWeierstrass{T}, degree::Integer, poly::PolyElem{T}, image)
-	
+function Isogeny{T}(E::AbstractWeierstrass{T}, poly::PolyElem{T}, Eprime::AbstractWeierstrass{T})
+	phi1 = Isogeny(E, poly)
+	postisomorphism = find_isomorphism(image(phi1), Eprime)
+	phi = compose(phi1, postisomorphism)
+	return phi
 end
 
-function Isogeny{T}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T}, phix::Frac{PolyElem{T}}, phiy::Frac{PolyElem{T}})
+function Isogeny{T, U<:PolyElem{T}}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T}, phix::GenFrac{U}, phiy::GenFrac{U})
+	K = sqrt(denominator(phix))
+	F = base_ring(K)
+	normalizedphix, normalizedphiy = rational_fractions(Isogeny(E1, K))
+	usquare = phix//normalizedphix
+	ucube = phiy//normalizedphiy
 	
+	#convert to base field
+	num = numerator(usquare)
+	den = denominator(usquare)
+	@assert den == 1
+	@assert degree(num) == 0
+	usquare = coeff(num, 0)
+	num = numerator(ucube)
+	den = denominator(ucube)
+	@assert den == 1
+	@assert degree(num) == 0
+	ucube = coeff(num, 0)
+	
+	u = ucube // usquare
+	testphiy = u^3 * normalizedphiy
+	if testphiy == - phiy
+		u = -u
+	end
+	@assert degree(numerator(phix)) == 2 * degree(K) + 1
+	res = Isogeny(E1, 2 * degree(K) + 1, K, u, F(0), F(0), F(0), E2, Nullable(phix), Nullable(phiy))
+	@assert isvalid(res)
+	return res
 end
 
 """
@@ -277,9 +245,6 @@ Build an isogeny given its domain and its kernel polynomial.
 function Isogeny{T}(E::AbstractWeierstrass{T}, poly::PolyElem{T})
 	
 	CurveType = curvetype(E)
-	psi2 = divisionpolynomial(E, 2, 2)(gen(parent(poly)))
-	two_torsion_part = gcd(psi2, poly)
-	odd_part = divexact(poly, two_torsion_part)
 	
 	K = base_ring(E)
 	a1, a2, a3, a4, a6 = a_invariants(E)
@@ -288,22 +253,16 @@ function Isogeny{T}(E::AbstractWeierstrass{T}, poly::PolyElem{T})
 	
 	coeff(poly, n) == 1 || throw(ArgumentError("kernel polynomial must be monic"))
 	
-	if two_torsion_part == 1
-	
-		s1, s2, s3 = zero(K), zero(K), zero(K)
-	
-		n > 0 && (s1 = - coeff(poly, n - 1))
-		n > 1 && (s2 = coeff(poly, n - 2))
-		n > 2 && (s3 = - coeff(poly, n - 3))
-		t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
-		w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
-		E1 = CurveType(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
-	
-		return Isogeny(E, 2 * n + 1, one(parent(poly)), poly, K(1), K(0), K(0), K(0), E1, Nullable{Frac{PolyElem{T}}}(), Nullable{Frac{PolyElem{T}}}())
-	
-	else #there is a two-torsion part
-		throw(NotImplementedError)
-	end
+	s1, s2, s3 = zero(K), zero(K), zero(K)
+
+	n > 0 && (s1 = - coeff(poly, n - 1))
+	n > 1 && (s2 = coeff(poly, n - 2))
+	n > 2 && (s3 = - coeff(poly, n - 3))
+	t = 6 * (s1^2 - 2 * s2) + b2 * s1 + n * b4
+	w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
+	E1 = CurveType(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
+
+	return Isogeny(E, 2 * n + 1, poly, K(1), K(0), K(0), K(0), E1, Nullable{GenFrac{PolyElem{T}}}(), Nullable{GenFrac{PolyElem{T}}}())
 end
 
 
@@ -324,7 +283,7 @@ Get the polynomial associated to an l-torsion rational point, l being an odd pri
 
 The input is not checked.
 """
-function _subgrouppoly{T<:Nemo.FieldElem}(Q::EllipticPoint{T}, l::Nemo.Integer)
+function subgroup{T<:Nemo.FieldElem}(Q::EllipticPoint{T}, l::Nemo.Integer)
 	normalize!(Q)
 	K = base_ring(Q)
 	R, x = PolynomialRing(K, "x")
@@ -374,8 +333,8 @@ end
 Build an isogeny given an odd integer l and a rational torsion point of this order. The input is not checked.
 """
 
-function Isogeny{T<:Nemo.FieldElem}(E::Weierstrass{T}, Q::EllipticPoint{T}, l::Nemo.Integer)
-	poly = _subgrouppoly(Q, l)
+function Isogeny{T<:Nemo.FieldElem}(E::AbstractWeierstrass{T}, Q::EllipticPoint{T}, l::Nemo.Integer)
+	poly = subgroup(Q, l)
 	return Isogeny(E, poly)
 end
 
@@ -383,8 +342,7 @@ end
 Build an isogeny of given degree between two curves, assuming a normalized separable isogeny of this degree exists.
 """
 
-function Isogeny{T<:Nemo.FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
-	degree::Nemo.Integer)
+function Isogeny{T<:Nemo.FieldElem}(E1::AbstractWeierstrass{T}, degree::Nemo.Integer, E2::AbstractWeierstrass{T})
 	poly = kernelpoly(E1, E2, degree)
 	return Isogeny(E1, poly)
 end
@@ -393,8 +351,81 @@ end
 Compute the scalar multiplication by m on a weierstrass curve as a normalized isogeny.
 """
 function multiplication_isogeny(E::AbstractWeierstrass, m::Nemo.Integer)
-	return Isogeny(E, divisionpolynomial(E, m))
+	@assert isodd(m)
+	K = base_ring(E)
+	psim = divisionpolynomial(E, m)
+	n = degree(psim)
+	phi1 = Isogeny(E, 1 // coeff(psim, n) * psim)
+	E2 = image(phi1)
+	postisomorphism = isomorphism(E2, 1 // K(m))
+	@assert image(postisomorphism) == E
+	return compose(phi1, postisomorphism)
 end
+
+
+
+######################################################################
+# Dual isogeny
+######################################################################
+
+function dual(phi::Isogeny)
+	K = base_ring(phi)
+	E1 = domain(phi)
+	E2 = image(phi)
+	d = degree(phi)
+	E1_0 = image(isomorphism(E1, K(d)))
+	phi_hat = Isogeny(E2, d, E1_0) #use BMSS
+	#de-normalize !
+	postisomorphism = isomorphism(image(phi_hat), 1//K(d))
+	phi_hat = compose(phi_hat, postisomorphism)
+	@assert isvalid(phi_hat)
+	@assert image(phi_hat) == E1
+	return phi_hat
+end
+
+function isomorphism{T}(E::AbstractWeierstrass{T}, u::T)
+	a1, a2, a3, a4, a6 = a_invariants(E) #we have a1 = a3 = 0
+	a2prime = a2 * u^2
+	a4prime = a4 * u^4
+	a6prime = a6 * u^6
+	K = base_ring(E)
+	R, X = PolynomialRing(base_ring(E), "X")
+	phi = Isogeny(E, 1, R(1), u, K(0), K(0), K(0), EllipticCurve(a2prime, a4prime, a6prime), Nullable{GenFrac{PolyElem{T}}}(), Nullable{GenFrac{PolyElem{T}}}())
+	return phi
+end
+
+function find_isomorphism{T}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T})
+	a11, a21, a31, a41, a61 = a_invariants(E1)
+	a12, a22, a32, a42, a62 = a_invariants(E2)
+	u = sqrt(a22 // a21)
+	@assert a42 = a41 * u^4
+	@assert a62 = a61 * u^6
+	return isomophism(E1, u)
+end
+
+######################################################################
+# Operations
+######################################################################
+
+function +(phi::Isogeny, psi::Isogeny)
+	E = domain(phi)
+	@assert E == domain(psi)
+	Eprime = image(phi)
+	@assert Eprime == image(psi)
+	phix, phiy = rational_fractions(phi)
+	psix, psiy = rational_fractions(phi)
+	return Isogeny(E, Eprime, phix + psix, phiy + psiy)
+end
+
+function -(phi::Isogeny)
+	pix, phiy = rational_fractions(phi)
+	return Isogeny(domain(phi), image(phi), phix, -phiy)
+end
+
+function -(phi::Isogeny, psi::Isogeny)
+	return phi + (-psi)
+end
+
 
 
 

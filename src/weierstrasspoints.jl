@@ -18,6 +18,10 @@ function infinity(E::AbstractWeierstrass)
     return EllipticPoint(Nemo.zero(R), Nemo.one(R), Nemo.zero(R), E)
 end
 
+function zero(E::AbstractWeierstrass)
+	return infinity(E)
+end
+
 
 """
 Get the opposite of a point on an elliptic curve in Weierstrass form.

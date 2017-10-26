@@ -3,7 +3,7 @@
 # points.jl: projective points on elliptic curves
 ######################################################################
 
-export EllipticPoint
+export EllipticPoint, Point
 
 export coordinates, base_curve, isinfinity, normalized, samefields
 
@@ -22,6 +22,18 @@ coordinates(P::EllipticPoint) = (P.X, P.Y, P.Z)
 
 base_curve(P::EllipticPoint) = P.curve
 
+######################################################################
+# Calling with the 'Point' constructor
+######################################################################
+
+function Point{T}(x::T, y::T, curve::EllipticCurve{T})
+	R = base_ring(x)
+	return EllipticPoint(x, y, R(1), curve)
+end
+
+function Point{T}(X::T, Y::T, Z::T, curve::EllipticCurve{T})
+	return EllipticPoint(X, Y, Z, curve)
+end
 
 ######################################################################
 # Basic methods for projective points
@@ -47,13 +59,13 @@ Decide whether two projective points are given by the exact same coordinates.
 samefields(P::EllipticPoint, Q::EllipticPoint) = (P.curve == Q.curve) & (P.X == Q.X) & (P.Y == Q.Y) & (P.Z == Q.Z)
 
 """
-Describes a projective point giving its X, Y and Z coordinates, and the curve it lives on.
+Describe a projective point giving its X, Y and Z coordinates, and the curve it lives on.
 """
 show(io::IO, P::EllipticPoint) = print("Point (", P.X, ":", P.Y, ":", P.Z, ") on ", P.curve)
 
 
 """
-Decides whether a projective point is at infinity.
+Decide whether a projective point is at infinity.
 """
 isinfinity(P::EllipticPoint) = iszero(P.Z)
 
@@ -76,7 +88,7 @@ function normalized(P::EllipticPoint)
 end
 
 """
-Normalize a projective point.
+Normalize a projective point in place.
 """
 function normalize!{T<:Nemo.FieldElem}(P::EllipticPoint{T})
     K = base_ring(P)

@@ -1,62 +1,62 @@
 
 
 ######################################################################
-# montgomerypoints.jl: X-only points for Montgomery curves
+# montgomerypoints.jl: xz-points for Montgomery curves
 ######################################################################
 
-export XonlyPoint, xonly, xadd, xdouble, xinfinity, areequal
+export XZPoint, xadd, xdouble, xinfinity, fixedtorsion, isfixedtorsion, XZzero
 
 ######################################################################
 # Type definitions
 ######################################################################
 
 """
-Concrete type for x-only points on Montgomery curves.
+Concrete type for xz-points on Montgomery curves.
 """
-type XonlyPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
+type XZPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
     X::T
     Z::T
     curve::Montgomery{T}
 end
 
-base_ring(P::XonlyPoint) = Nemo.parent(P.X)
+base_ring(P::XZPoint) = Nemo.parent(P.X)
 
-base_curve(P::XonlyPoint) = P.curve
+base_curve(P::XZPoint) = P.curve
 
-
-"""
-Get a description of an x-only point.
-"""
-show(io::IO, P::XonlyPoint) = print(io, "($(P.X):$(P.Z))")
 
 """
-Create an x-only point from a projective point with 3 coordinates.
+Get a description of an xz-point.
 """
-function xonly{T<:Nemo.RingElem}(P::EllipticPoint{T})
-	return XonlyPoint(P.X, P.Z, P.curve)
+show(io::IO, P::XZPoint) = print(io, "($(P.X):$(P.Z))")
+
+"""
+Create an xz-point from a projective point with 3 coordinates.
+"""
+function XZPoint{T<:Nemo.RingElem}(P::EllipticPoint{T})
+	return XZPoint(P.X, P.Z, P.curve)
 end
 
 
 """
-Get a normalized x-only point from any x-only point.
+Get a normalized xz-point from any xz-point.
 """
-function normalized{T}(P::XonlyPoint{T})
+function normalized{T}(P::XZPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
-        return XonlyPoint(Nemo.zero(K), 
+        return XZPoint(Nemo.zero(K), 
                                Nemo.zero(K), 
                                P.curve)
     else
-        return XonlyPoint(P.X // P.Z,
+        return XZPoint(P.X // P.Z,
                                Nemo.one(K),
                                P.curve)
     end
 end
 
 """
-Normalizes a x-only point to a x-only point with Z-coordinate 1.
+Normalizes a xz-point to a xz-point with Z-coordinate 1, in place.
 """
-function normalize!{T<:Nemo.FieldElem}(P::XonlyPoint{T})
+function normalize!{T<:Nemo.FieldElem}(P::XZPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
         P.X = Nemo.zero(K)
@@ -70,49 +70,56 @@ end
 
 
 """
-Decide whether two x-only points are given by the exact same coordinates.
+Decide whether two xz-points are given by the exact same coordinates.
 """
-function ==(P::XonlyPoint, Q::XonlyPoint)
+function samefields(P::XZPoint, Q::XZPoint)
 	return (P.curve == Q.curve) & (P.X == Q.X) & (P.Z == Q.Z)
 end
 
 """
-Decide whether two x-only points are equal.
+Decide whether two xz-points are equal.
 """
-areequal(P::XonlyPoint, Q::XonlyPoint) = P.X * Q.Z - P.Z * Q.X == 0
+==(P::XZPoint, Q::XZPoint) = P.X * Q.Z - P.Z * Q.X == 0
 
 
 """
-Decide whether an x-only point is the point at infinity.
+Decide whether an xz-point is the point at infinity.
 """
-isinfinity(P::XonlyPoint) = iszero(P.Z)
+isinfinity(P::XZPoint) = iszero(P.Z)
 
 """
-Decide whether an x-only point is the fixed 2-torsion point of the Montgomery model (at the origin).
+Decide whether an xz-point is the fixed 2-torsion point of the Montgomery model (at the origin).
 """
-isxfixedtorsion(P::XonlyPoint) = iszero(P.X)
+isfixedtorsion(P::XZPoint) = iszero(P.X)
 
 
 
 """
-Get the x-only point at infinity on a Montgomery curve.
+Get the xz-point at infinity on a Montgomery curve.
 """
 function xinfinity(E::Montgomery)
     K = Nemo.parent(E.A)
     zero = Nemo.zero(K)
-    return XonlyPoint(zero, zero, E)
+    return XZPoint(zero, zero, E)
+end
+
+function XZzero(E::Montgomery)
+	return xinfinity(E)
 end
 
 
 """
-Get the fixed x-only 2-torsion point on a Montgomery curve.
+Get the fixed xz- 2-torsion point on a Montgomery curve.
 """
-function xfixedtorsion(E::Montgomery)
+function fixedtorsion(E::Montgomery)
     K = Nemo.parent(E.A)
-    return XonlyPoint(Nemo.zero(K), Nemo.one(K), E)
+    return XZPoint(Nemo.zero(K), Nemo.one(K), E)
 end
 
-
+#XZ points are valid by default
+function isvalid(P::XZPoint)
+	return true
+end
 
 
 
@@ -123,9 +130,9 @@ end
 
 
 """
-Double any x-only point using the least possible field operations.
+Double any xz-point using the least possible field operations.
 """
-function xdouble{T}(P::XonlyPoint{T})
+function xdouble{T}(P::XZPoint{T})
 	E = P.curve
 	R = base_ring(E)
 
@@ -146,15 +153,15 @@ function xdouble{T}(P::XonlyPoint{T})
         X2 = Nemo.zero(R)
     end
     
-    return XonlyPoint(X2, Z2, E)
+    return XZPoint(X2, Z2, E)
 end
 
 """
-Differential addition on x-only points using the least possible field operations.
+Differential addition on xz-points using the least possible field operations.
 
 This function assumes the difference is not (0:0) or (0:1).
 """
-function xadd{T}(P::XonlyPoint{T}, Q::XonlyPoint{T}, Minus::XonlyPoint{T})
+function xadd{T}(P::XZPoint{T}, Q::XZPoint{T}, Minus::XZPoint{T})
     v0 = P.X + P.Z
     v1 = Q.X - Q.Z
     v1 = v1 * v0
@@ -171,13 +178,13 @@ function xadd{T}(P::XonlyPoint{T}, Q::XonlyPoint{T}, Minus::XonlyPoint{T})
     Xplus = Minus.Z * v3
     Zplus = Minus.X * v4
    
-    return XonlyPoint(Xplus, Zplus, P.curve)
+    return XZPoint(Xplus, Zplus, P.curve)
 end
 
 """
-Montgomery ladder to compute scalar multiplications of generic x-only points, using the least possible field operations.
+Montgomery ladder to compute scalar multiplications of generic xz-points, using the least possible field operations.
 """
-function xladder(k::Nemo.Integer, P::XonlyPoint)
+function xladder(k::Nemo.Integer, P::XZPoint)
 	normalize!(P)
     x0, x1 = P, xdouble(P)
     for b in bin(k)[2:end]
@@ -191,9 +198,9 @@ function xladder(k::Nemo.Integer, P::XonlyPoint)
 end
 
 """
-Top-level function for scalar multiplications with x-only points on Montgomery curves
+Top-level function for scalar multiplications with xz-points on Montgomery curves
 """
-function *(k::Nemo.Integer, P::XonlyPoint)
+function *(k::Nemo.Integer, P::XZPoint)
 	E = P.curve
 	if k == 0
 		return xinfinity(E)
@@ -202,11 +209,11 @@ function *(k::Nemo.Integer, P::XonlyPoint)
 	else
 		if isinfinity(P)
 			return xinfinity(E)
-		elseif isxfixedtorsion(P)
+		elseif isfixedtorsion(P)
 			if k % 2 == 0
 				return xinfinity(E)
 			else
-				return xfixedtorsion(E)
+				return fixedtorsion(E)
 			end
 		else
 			return xladder(k, P)
@@ -214,5 +221,5 @@ function *(k::Nemo.Integer, P::XonlyPoint)
 	end
 end
 
-*(k::Nemo.fmpz, P::XonlyPoint) = BigInt(k) * P
+*(k::Nemo.fmpz, P::XZPoint) = BigInt(k) * P
 
