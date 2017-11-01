@@ -51,6 +51,11 @@ function equation(E::Montgomery)
 	return E.B * Y^2 - X^3 - E.A * X^2 - X
 end
 
+function equation(E::Montgomery, X, Y)
+	K = base_ring(E)
+	return E.B * Y^2 - X^3 - E.A * X^2 - X
+end
+
 function isvalid(E::Montgomery)
 	return (E.B != 0) & (E.A != 0) & (E.A != 2) & (E.A != -2)
 end

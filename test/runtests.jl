@@ -107,7 +107,7 @@ print("done\n")
 #Really trivial code, no need for testing
 
 ######################################################################
-# Testing montgomerypoints.jl
+# Testing montgomerypoints.jl and curves
 ######################################################################
 
 print("Testing montgomerypoints.jl... ")
@@ -217,20 +217,22 @@ id = Isogeny(E, 1, E)
 phix, phiy = rational_fractions(phi)
 @test Isogeny(E, image(phi), phix, phiy) == phi
 
-print("done\n")
-
 #Isogeny(E, d, jprime) is not tested, since there are no modular polynomials yet
 
-#=
+print("done\n")
 
 ######################################################################
 # Testing finite.jl
 ######################################################################
 
-print("Testing isogeny computation over finite fields...\n")
+print("Testing finite.jl... ")
 
-F, _ = FiniteField(233, 1, "u")
-Cards = Dict{Int,Nemo.fmpz}()
+#Conversions
+
+F, u = FiniteField(233, 1, "u")
+G, z = FiniteField(233, 3, "z")
+@test convert(G(1), F) == F(1)
+@test convert(F(1), G) == G(1)
 
 #Roots of polynomials
 
@@ -239,57 +241,48 @@ R, X = PolynomialRing(F, "X")
 @test bool
 @test root^2 == 1
 
-#Conversions
+#Cardinality
 
-G, z = FiniteField(233, 3, "z")
-@test convert(G(1), F) == F(1)
-@test convert(F(1), G) == G(1)
+E = EllipticCurve(F(3), F(4))
+#@test cardinality(E) == 260: no point counting algorithm yet
+#@test frobeniustrace(E) == -26
+E2 = Montgomery(F(3), F(1))
+#@test cardinality(E2) == 240
 
-#Testing isogeny computations : cardinality is given by Sage
+#Random points
 
-E = Weierstrass(F(1), F(2), F(3), F(4), F(5))
-Cards[1] = ZZ(224)
-Card = Cards[1]
+P = rand(E)
+@test isvalid(P)
+@test 260 * P == zero(E)
+P2 = randXZ(E2)
+@test isvalid(P2)
+@test 210 * P2 == XZzero(E2)
 
-(bool, order) = isgoodprime(E, 19, Card)
-@test !bool
-(bool, order) = isgoodprime(E, 7, Card)
+#Torsion points
+
+Q = torsionpoint(E, 13, 260)
+@test Q !== zero(E)
+@test 13 * Q == zero(E)
+Q2 = torsionXZ(E2, 5, 240)
+@test Q2 !== XZzero(E2)
+@test 5 * Q2 == XZzero(E2)
+
+#Base extensions
+
+P = rand(base_extend(E, G))
+@test isvalid(P)
+
+@test card_over_extension(210, 233, 3) == 12652290
+
+#Montgomery models
+E = EllipticCurve(F(204), F(56))
+(bool, Eprime) = has_montgomery(E)
 @test bool
-@test order == 1
+@test j_invariant(E) == j_invariant(Eprime)
 
-phi = first_isogeny(E, 7, Cards)
-@test j_invariant(image(phi)) == F(52) #Given by Sage
+print("done\n")
 
+print("\n")
 
-#With Montgomery curves
-
-E = Montgomery(F(3), F(1))
-Cards[1] = ZZ(240)
-Card = Cards[1]
-
-(bool, order) = isgoodprime(E, 17, Card)
-@test !bool
-(bool, order) = isgoodprime(E, 5, Card)
-@test bool
-@test order == 1
-
-
-phi = first_isogeny_x(E, 5, Cards)
-@test j_invariant(image(phi)) == F(76) #Given by Sage
-
-#Testing over extensions : p must be big
-
-F, _ = FiniteField(1267650600228229401496703205653, 1, "u")
-E = Montgomery(F(3), F(1))
-Cards[1] = ZZ(1267650600228228574627063707104)
-Card = Cards[1]
-Cards[4] = ZZ(2582249878086908589655919174260047736108316376414661336328042639672071392914646520434415276111057972712143504852274942464)
-
-(bool, order) = isgoodprime(E, 109, Card)
-@test bool
-@test order == 4
-
-phi = first_isogeny_x(E, 109, Cards)
-=#
 
 

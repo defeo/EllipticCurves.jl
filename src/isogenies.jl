@@ -414,7 +414,8 @@ function +(phi::Isogeny, psi::Isogeny)
 	@assert Eprime == image(psi)
 	phix, phiy = rational_fractions(phi)
 	psix, psiy = rational_fractions(phi)
-	return Isogeny(E, Eprime, phix + psix, phiy + psiy)
+	throw(NotImplementedError("Use the addition laws on the image curve"))
+	#return Isogeny(E, Eprime, phix + psix, phiy + psiy)
 end
 
 function -(phi::Isogeny)
