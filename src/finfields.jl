@@ -22,7 +22,7 @@ function cardinality{T<:FinFieldElem}(E::EllipticCurve{T})
 	return q + 1 - t
 end
 
-function frobeniuspolynomial{T<:FinFieldElem}(E::EllipticCurve{T}, Card::Integer)
+function frobeniuspolynomial{T<:FinFieldElem}(E::EllipticCurve{T}, Card)
 	q = order(base_ring(E))
 	t = q + 1 - Card
 	A, X = PolynomialRing(Nemo.ZZ, "X")
@@ -58,7 +58,7 @@ end
 # Torsion points
 ######################################################################
 
-function torsionpoint{T<:FinFieldElem}(E::EllipticCurve{T}, l::Integer, Card::Integer)
+function torsionpoint{T<:FinFieldElem}(E::EllipticCurve{T}, l, Card)
 	cofactor = div(Card, l)
 	@assert cofactor * l == Card
 	P = rand(E)
@@ -71,7 +71,7 @@ function torsionpoint{T<:FinFieldElem}(E::EllipticCurve{T}, l::Integer, Card::In
 	return Q
 end
 
-function torsionXZ{T<:FinFieldElem}(E::Montgomery{T}, l::Integer, Card::Integer)
+function torsionXZ{T<:FinFieldElem}(E::Montgomery{T}, l, Card)
 	cofactor = div(Card, l)
 	@assert cofactor * l == Card
 	P = randXZ(E)
@@ -108,7 +108,7 @@ function base_extend{T<:FinFieldElem}(E::Montgomery{T}, K::FinField)
 	return Montgomery(convert(E.A, K), convert(E.B, K))
 end
 
-function card_over_extension(Card::Integer, p::Integer, r::Integer)
+function card_over_extension(Card, p, r)
 	t = p + 1 - Card
 	A, X = PolynomialRing(Nemo.QQ, "X")
 	poly = X^2 - t * X + p

@@ -1,8 +1,13 @@
 
-export order, roots, any_root, issquare
+export order, roots, any_root, issquare, next_prime, prime_range
 
 ######################################################################
 # tools.jl: useful tools for EllipticCurves
+######################################################################
+
+
+######################################################################
+# Rational fractions
 ######################################################################
 
 function (P::GenMPoly)(args...)

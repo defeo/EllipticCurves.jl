@@ -306,9 +306,10 @@ Returns a normalized isogeny
 
 function Isogeny{T}(E::ShortWeierstrass{T}, degree::Nemo.Integer, jprime::T)
 	K = base_ring(E)
-	Phi_l = modularpoly(degree)
-	R, x = PolynomialRing(K, "x")
-	Phi_l = R(Phi_l)
+	KX, X = PolynomialRing(K, "X")
+	KXY, Y = PolynomialRing(KX, "Y")
+	Phi_l = ClassPolynomials.ClassicalModularPolynomial(degree, X, Y)
+	#polynomial in Y over polynomials in X
 	j = j_invariant(E)
 	l = K(degree)
 	
@@ -318,14 +319,13 @@ function Isogeny{T}(E::ShortWeierstrass{T}, degree::Nemo.Integer, jprime::T)
 	J = - K(18) // l * (E.b // E.a) * (derx // dery) * j
 	jj = jprime * (jprime - 1728)
 	
-	aprime = - J^2 // (48 * l^4 * jj)
-	bprime = - J^3 // (864 * l^6 * jprime * jj)
+	aprime = - l^4 * J^2 // (48 * jj)
+	bprime = - l^6 * J^3 // (864 * jprime * jj)
 	
 	Eprime = ShortWeierstrass(aprime, bprime)
-	
 	poly = kernelpoly(E, Eprime, degree)
 	
-	return Isogeny(E, degree, poly, Eprime)
+	return Isogeny(E, degree, poly, K(1), K(0), K(0), K(0), Eprime, Nullable{GenFrac{PolyElem{T}}}(), Nullable{GenFrac{PolyElem{T}}}())
 end
 
 

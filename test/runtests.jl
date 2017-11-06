@@ -1,6 +1,6 @@
 using Nemo
-using Primes
 using EllipticCurves
+using ClassPolynomials
 
 using Base.Test
 
@@ -187,18 +187,18 @@ f3 = divisionpolynomial(E, 3)
 @test f3(P.X) == 0
 
 phi = Isogeny(E, P, 3)
-
+Eprime = image(phi)
 @test domain(phi) == E
-@test image(phi) == EllipticCurve(F(24), F(24)) #given by Sage
-@test phi(P) == zero(image(phi))
+@test Eprime == EllipticCurve(F(24), F(24)) #given by Sage
+@test phi(P) == zero(Eprime)
 @test isvalid(phi(Q))
-@test phi(Q) == Point(F(91), F(20), F(1), image(phi))
+@test phi(Q) == Point(F(91), F(20), F(1), Eprime)
 
 K = subgroup(P, 3)
 
 @test kernel(phi) == K
 @test Isogeny(E, K) == phi
-@test Isogeny(E, 3, image(phi)) == phi
+@test Isogeny(E, 3, Eprime) == phi
 
 @test isvalid(phi)
 psi = dual(phi)
@@ -215,17 +215,24 @@ id = Isogeny(E, 1, E)
 @test isvalid(id)
 
 phix, phiy = rational_fractions(phi)
-@test Isogeny(E, image(phi), phix, phiy) == phi
+@test Isogeny(E, Eprime, phix, phiy) == phi
 
-#Isogeny(E, d, jprime) is not tested, since there are no modular polynomials yet
+jprime = j_invariant(Eprime)
+@test Isogeny(E, 3, jprime) == phi
+
+ell = 5
+FX, X = PolynomialRing(F, "X")
+bb, j1 = any_root(ClassicalModularPolynomial(ell, j_invariant(E), X))
+@test bb
+@test isvalid(Isogeny(E, ell, j1))
 
 print("done\n")
 
 ######################################################################
-# Testing finite.jl
+# Testing finfields.jl
 ######################################################################
 
-print("Testing finite.jl... ")
+print("Testing finfields.jl... ")
 
 #Conversions
 
