@@ -3,7 +3,8 @@
 # finfields.jl: Elliptic curves over finite fields
 ######################################################################
 
-export frobeniustrace, cardinality, frobeniuspolynomial, randXZ, has_montgomery, torsionpoint, torsionXZ, card_over_extension, base_extend
+export frobeniustrace, cardinality, frobeniuspolynomial, randXZ, has_montgomery, torsionpoint, torsionXZ, card_over_extension
+export base_extend
 
 
 ######################################################################
@@ -115,9 +116,10 @@ function card_over_extension(Card, p, r)
 	_, z = Nemo.NumberField(poly, "z")
 	poly(z) == 0 || throw(ArgumentError("NumberField does not work as planned"))
 	alpha = z
-	beta = t - z
+	beta = -z + t
 	poly(beta) == 0 || throw(ArgumentError("NumberField does not work as planned"))
-	return num(trace(p^r + 1 - alpha^r - beta^r) // 2)
+	alpha * beta == p || throw(ArgumentError("NumberField does not work as planned"))
+	return num(trace(p^r + 1 - (alpha^r + beta^r)) // 2)
 end
 
 

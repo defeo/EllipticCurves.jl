@@ -1,5 +1,5 @@
 
-export order, roots, any_root, issquare, next_prime, prime_range
+export order, roots, any_root, issquare, next_prime
 
 ######################################################################
 # tools.jl: useful tools for EllipticCurves

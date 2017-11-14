@@ -97,6 +97,13 @@ Pinf = zero(E)
 @test P3 - P3 == 0 * P3 == Pinf
 @test P1 - P3 == 1 * P1 + (-1) * P3 == Point(QQ(4), QQ(9), QQ(1), E)
 
+@test projective_add(P2, P3) == P2 + P3
+@test projective_scalar_mul(P2, 7) == 7 * P2
+
+E = EllipticCurve(QQ(2), QQ(1))
+P = Point(QQ(1), QQ(2), QQ(1), E)
+@assert projective_add(P, P) == 2 * P
+@assert projective_scalar_mul(P, 17) == 17 * P
 print("done\n")
 
 

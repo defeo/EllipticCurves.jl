@@ -18,7 +18,7 @@ module EllipticCurves
 ######################################################################
 
 import Nemo
-import Nemo: base_ring, discriminant, degree, PolynomialRing, order, FinField, FinFieldElem, PolyElem, FiniteField, roots, issquare, parent, convert, trace, degree, coeff, characteristic, jacobi, Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, shift_left, shift_right, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!, sqrt, isprime, ZZ, GenFrac, GenMPoly, evaluate, divexact, gen, derivative, gens, zero, one, ResidueRing, ResRing, div, FieldElem, rem, FractionField, numerator, denominator, sqrt, gcd
+import Nemo: base_ring, discriminant, degree, PolynomialRing, RingElem, order, FinField, FinFieldElem, PolyElem, FiniteField, roots, issquare, parent, convert, trace, degree, coeff, characteristic, jacobi, Integer, AbsSeriesElem, SeriesRing, PowerSeriesRing, PolyRing, PolynomialRing, PolyElem, FieldElem, shift_left, shift_right, truncate, inv, sqrt, set_prec!, divrem, compose, setcoeff!, sqrt, isprime, ZZ, GenFrac, GenMPoly, evaluate, divexact, gen, derivative, gens, zero, one, ResidueRing, ResRing, div, FieldElem, rem, FractionField, numerator, denominator, sqrt, gcd
 
 import Base: show, normalize!, isvalid, ==, rand, *, +, -
 import ClassPolynomials

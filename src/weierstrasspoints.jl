@@ -3,7 +3,7 @@
 # weierstrasspoints.jl: Addition laws for projective points on Weierstrass curves
 ######################################################################
 
-export infinity
+export infinity, projective_add, projective_scalar_mul
 
 
 ######################################################################
@@ -22,6 +22,10 @@ function zero(E::AbstractWeierstrass)
 	return infinity(E)
 end
 
+
+######################################################################
+# Addition law
+######################################################################
 
 """
 Get the opposite of a point on an elliptic curve in Weierstrass form.
@@ -159,4 +163,93 @@ function _ladder(m::Nemo.Integer, P::EllipticPoint)
     end
 	return p0
 end
+
+######################################################################
+# Projective addition law for Short Weierstrass curves
+######################################################################
+
+# P = (x1, y1, z1)
+# Q = (x2, y2, z2)
+# P + Q = (x3, y3, z3)
+# if P != Q then
+# x3 = (x2 z1 - x1 z2) [ (y2 z1 - y1 z2)^2 z1 z2 - (x2 z1 - x1 z2)^2 (x2 z1 + x1 z2) ]
+# y3 = (y2 z1 - y1 z2) [ (x2 z1 - x1 z2)^2 (x2 z1 + 2 x1 z2) - (y2 z1 - y1 z2)^2 z1 z2 ] - (x2 z1 - x1 z2)^3 y1 z2
+# z3 = (x2 z1 - x1 z2)^3 z1 z2
+# if P = Q then
+# x3 = 2 y1 z1 [ (a z1^2 + 3 x1^2)^2 - 8 x1 y1^2 z1 ]
+# y3 = (a z1^2 + 3 x1^2 ) [ 12 x1 y1^2 z1 - a^2 (z1^2 + 3 x1^2)^2 ] - 8 y1^4 z1^2
+# z3 = (2 y1 z1)^3
+
+#This function is only to be used with distinct points on the same short Weierstrass curve
+#xdet is x2 z1 - x1 z2, and ydet is y2 z1 - y1 z2
+function _projective_add_neq{T}(P::EllipticPoint{T}, Q::EllipticPoint{T}, xdet::T, ydet::T)
+	x1, y1, z1 = coordinates(P)
+	x2, y2, z2 = coordinates(Q)
+	xdet2 = xdet^2
+	xdet3 = xdet2 * xdet
+	ydet2 = ydet^2
+	z1z2 = z1 * z2
+	#we could save a few multiplications in what follows
+	x3 = xdet * ( ydet2 * z1z2 - xdet2 * (x2 * z1 + x1 * z2) )
+	y3 = ydet * ( xdet2 * (x2 * z1 + 2 * x1 * z2) - ydet2 * z1z2 ) - xdet3 * y1 * z2
+	z3 = xdet3 * z1z2
+	res = Point(x3, y3, z3, base_curve(P))
+	#@assert isvalid(res) #sanity check
+	return res
+end
+
+#This function is only to be used with a point on a short Weierstrass curve
+function _projective_dbl{T}(P::EllipticPoint{T})
+	x, y, z = coordinates(P)
+	_, _, _, a, b = a_invariants(base_curve(P))
+	factor = a * z^2 + 3 * x^2
+	factor2 = factor^2
+	yz = y * z
+	xy2z = x * y * yz
+	#we could save again a few multiplications in what follows
+	xprime = 2 * yz * ( factor2 - 8 * xy2z )
+	yprime = factor * ( 12 * xy2z - factor2 ) - 8 * (yz)^2 * y^2
+	zprime = 8 * (yz)^3
+	res = Point(xprime, yprime, zprime, base_curve(P))
+	#@assert isvalid(res) #sanity check
+	return res
+end
+
+#This function is only to be used with two points on the same short Weierstrass curve
+#Compute xdet and ydet, if they are both zero go to _projective_dbl
+function projective_add{T}(P::EllipticPoint{T}, Q::EllipticPoint{T})
+	x1, y1, z1 = coordinates(P)
+	x2, y2, z2 = coordinates(Q)
+	xdet = x2 * z1 - x1 * z2
+	ydet = y2 * z1 - y1 * z2
+	if ((xdet == 0) & (ydet == 0))
+		return _projective_dbl(P)
+	else
+		return _projective_add_neq(P, Q, xdet, ydet)
+	end
+end
+
+#Here we assume v is a positive integer and P lives on a short Weierstrass curve
+function _projective_scalar_mul(P::EllipticPoint, v::Integer)
+	P0 = P
+	for b in bin(v)[2:end]
+        P0 = _projective_dbl(P0)
+        if (b == '1')
+        	P0 = projective_add(P0, P)
+        end
+    end
+	return P0
+end
+
+function projective_scalar_mul(P::EllipticPoint, v::Integer)
+	if v == 0
+		return infinity(base_curve(E))
+	elseif v < 0
+		return - _projective_scalar_mul(P, -v)
+	else
+		return _projective_scalar_mul(P, v)
+	end
+end
+
+
 
