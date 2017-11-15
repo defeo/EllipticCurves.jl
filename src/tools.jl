@@ -10,21 +10,21 @@ export order, roots, any_root, issquare, next_prime
 # Rational fractions
 ######################################################################
 
-function (P::GenMPoly)(args...)
+function (P::MPoly)(args...)
 	return evaluate(P, [args...])
 end
 
-function (P::GenFrac)(args...)
+function (P::Frac)(args...)
 	n = P.num
 	d = P.den
 	return n(args...) // d(args...)
 end
 
-function numerator(P::GenFrac)
+function numerator(P::Frac)
 	return P.num
 end
 
-function denominator(P::GenFrac)
+function denominator(P::Frac)
 	return P.den
 end
 

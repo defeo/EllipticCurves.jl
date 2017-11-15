@@ -28,8 +28,8 @@ type Isogeny{T}
 	s::T
 	t::T
 	image::EllipticCurve{T}
-	x::Nullable{GenFrac{U}} where U <: PolyElem{T}
-	y::Nullable{GenFrac{U}} where U <: PolyElem{T}
+	x::Nullable{Frac{U}} where U <: PolyElem{T}
+	y::Nullable{Frac{U}} where U <: PolyElem{T}
 end
 
 base_ring(phi::Isogeny) = base_ring(domain(phi))
@@ -209,7 +209,7 @@ function Isogeny{T}(E::AbstractWeierstrass{T}, poly::PolyElem{T}, Eprime::Abstra
 	return phi
 end
 
-function Isogeny{T, U<:PolyElem{T}}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T}, phix::GenFrac{U}, phiy::GenFrac{U})
+function Isogeny{T, U<:PolyElem{T}}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T}, phix::Frac{U}, phiy::Frac{U})
 	K = sqrt(denominator(phix))
 	F = base_ring(K)
 	normalizedphix, normalizedphiy = rational_fractions(Isogeny(E1, K))
@@ -262,7 +262,7 @@ function Isogeny{T}(E::AbstractWeierstrass{T}, poly::PolyElem{T})
 	w = 10 * (s1^3 - 3 * s1 * s2 + 3 * s3) + 2 * b2 * (s1^2 - 2 * s2) + 3 * b4 * s1 + n * b6
 	E1 = CurveType(a1, a2, a3, a4 - 5 * t, a6 - b2 * t - 7 * w)
 
-	return Isogeny(E, 2 * n + 1, poly, K(1), K(0), K(0), K(0), E1, Nullable{GenFrac{PolyElem{T}}}(), Nullable{GenFrac{PolyElem{T}}}())
+	return Isogeny(E, 2 * n + 1, poly, K(1), K(0), K(0), K(0), E1, Nullable{Frac{PolyElem{T}}}(), Nullable{Frac{PolyElem{T}}}())
 end
 
 
@@ -325,7 +325,7 @@ function Isogeny{T}(E::ShortWeierstrass{T}, degree::Nemo.Integer, jprime::T)
 	Eprime = ShortWeierstrass(aprime, bprime)
 	poly = kernelpoly(E, Eprime, degree)
 	
-	return Isogeny(E, degree, poly, K(1), K(0), K(0), K(0), Eprime, Nullable{GenFrac{PolyElem{T}}}(), Nullable{GenFrac{PolyElem{T}}}())
+	return Isogeny(E, degree, poly, K(1), K(0), K(0), K(0), Eprime, Nullable{Frac{PolyElem{T}}}(), Nullable{Frac{PolyElem{T}}}())
 end
 
 
@@ -390,7 +390,7 @@ function isomorphism{T}(E::AbstractWeierstrass{T}, u::T)
 	a6prime = a6 * u^6
 	K = base_ring(E)
 	R, X = PolynomialRing(base_ring(E), "X")
-	phi = Isogeny(E, 1, R(1), u, K(0), K(0), K(0), EllipticCurve(a2prime, a4prime, a6prime), Nullable{GenFrac{PolyElem{T}}}(), Nullable{GenFrac{PolyElem{T}}}())
+	phi = Isogeny(E, 1, R(1), u, K(0), K(0), K(0), EllipticCurve(a2prime, a4prime, a6prime), Nullable{Frac{PolyElem{T}}}(), Nullable{Frac{PolyElem{T}}}())
 	return phi
 end
 
