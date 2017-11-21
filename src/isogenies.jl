@@ -300,34 +300,72 @@ end
 
 """
 Build an isogeny given an elliptic curve in short Weierstrass form, the j-invariant of the targetted elliptic curve, and the degree, assuming it exists.
-
-Returns a normalized isogeny
+Returns a normalized isogeny.
+If the keyword argument USE_ATKIN is set to false (default), we use classical modular equations. If USE_ATKIN is set to true, we use Atkin modular equations.
 """
 
-function Isogeny{T}(E::ShortWeierstrass{T}, degree::Nemo.Integer, jprime::T)
+function Isogeny{T}(E::ShortWeierstrass{T}, degree::Nemo.Integer, jprime::T; USE_ATKIN=false)
 	K = base_ring(E)
+	j = j_invariant(E)
 	KX, X = PolynomialRing(K, "X")
 	KXY, Y = PolynomialRing(KX, "Y")
-	Phi_l = ClassPolynomials.ClassicalModularPolynomial(degree, X, Y)
-	#polynomial in Y over polynomials in X
+	if USE_ATKIN
+		print("using Atkin polys")
+		A_ell_j = ClassPolynomials.AtkinModularPolynomial(degree, X, j)
+		A_ell_jprime = ClassPolynomials.AtkinModularPolynomial(degree, X, jprime)
+		poly = gcd(A_ell_j, A_ell_jprime)
+		test, f = any_root(poly)
+		if !test
+			throw(ArgumentError("The curves are not linked by a rational isogeny of this degree"))
+		end
+		return Isogeny(E, degree, jprime, f)
+	else
+		Phi_l = ClassPolynomials.ClassicalModularPolynomial(degree, X, Y)
+		#polynomial in Y over polynomials in X
+		l = K(degree)
+		
+		derx = derivative(Phi_l)(j)(jprime)
+		dery = derivative(Phi_l)(jprime)(j) #works because Phi_l is symmetric
+		
+		J = - K(18) // l * (E.b // E.a) * (derx // dery) * j
+		jj = jprime * (jprime - 1728)
+		
+		aprime = - l^4 * J^2 // (48 * jj)
+		bprime = - l^6 * J^3 // (864 * jprime * jj)
+		Eprime = ShortWeierstrass(aprime, bprime)
+		poly = kernelpoly(E, Eprime, degree)
+		return Isogeny(E, degree, poly, K(1), K(0), K(0), K(0), Eprime, Nullable{Frac{PolyElem{T}}}(), Nullable{Frac{PolyElem{T}}}())
+	end
+end
+
+"""
+Another element in the base field may be given as argument. In this case we use the Atkin modular A_\ell equations instead of the classical ones,
+and f must satisfy A_\ell(j, f) == A_\ell(jprime, f) == 0. The curve must be given in Short Weierstrass form.
+"""
+function Isogeny{T}(E::ShortWeierstrass{T}, degree::Nemo.Integer, jprime::T, f::T)
 	j = j_invariant(E)
-	l = K(degree)
-	
-	derx = derivative(Phi_l)(j)(jprime)
-	dery = derivative(Phi_l)(jprime)(j) #works because Phi_l is symmetric
-	
-	J = - K(18) // l * (E.b // E.a) * (derx // dery) * j
-	jj = jprime * (jprime - 1728)
-	
-	aprime = - l^4 * J^2 // (48 * jj)
-	bprime = - l^6 * J^3 // (864 * jprime * jj)
-	
+	_, _, _, a, b = a_invariants(E)
+	K = base_ring(E)
+	@assert ClassPolynomials.AtkinModularPolynomial(degree, f, j) == 0
+	@assert ClassPolynomials.AtkinModularPolynomial(degree, f, jprime) == 0 #sanity checks
+	KX, X = PolynomialRing(K, "X")
+	dF = derivative(ClassPolynomials.AtkinModularPolynomial(degree, X, j))(f)
+	dF *= f
+	dF2 = derivative(ClassPolynomials.AtkinModularPolynomial(degree, X, jprime))(f)
+	dF2 *= f
+	poly = derivative(ClassPolynomials.AtkinModularPolynomial(degree, f, X))
+	dJ = j * poly(j)
+	dJ2 = degree * jprime * poly(jprime)
+	jj = jprime // (jprime - 1728)
+	lambda = (dF2 * dJ * b) // (dJ2 * dF * a)
+	aprime = - K(27)//K(4) * degree^4 * lambda^2 * jj
+    bprime = - K(27)//K(4) * degree^6 * lambda^3 * jj
 	Eprime = ShortWeierstrass(aprime, bprime)
 	poly = kernelpoly(E, Eprime, degree)
 	
 	return Isogeny(E, degree, poly, K(1), K(0), K(0), K(0), Eprime, Nullable{Frac{PolyElem{T}}}(), Nullable{Frac{PolyElem{T}}}())
 end
-
+	
 
 """
 Build an isogeny given an odd integer l and a rational torsion point of this order. The input is not checked.

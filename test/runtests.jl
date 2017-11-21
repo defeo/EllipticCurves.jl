@@ -227,12 +227,15 @@ phix, phiy = rational_fractions(phi)
 jprime = j_invariant(Eprime)
 @test Isogeny(E, 3, jprime) == phi
 
+#With modular equations
+
 ell = 5
 FX, X = PolynomialRing(F, "X")
 bb, j1 = any_root(ClassicalModularPolynomial(ell, j_invariant(E), X))
 @test bb
 @test isvalid(Isogeny(E, ell, j1))
 
+@test isvalid(Isogeny(E, ell, j1; USE_ATKIN = true))
 print("done\n")
 
 ######################################################################
