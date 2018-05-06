@@ -119,7 +119,7 @@ function card_over_extension(Card, p, r)
 	beta = -z + t
 	poly(beta) == 0 || throw(ArgumentError("NumberField does not work as planned"))
 	alpha * beta == p || throw(ArgumentError("NumberField does not work as planned"))
-	return num(trace(p^r + 1 - (alpha^r + beta^r)) // 2)
+	return numerator(trace(p^r + 1 - (alpha^r + beta^r)) // 2)
 end
 
 
