@@ -33,7 +33,7 @@ show(io::IO, P::XZPoint) = print(io, "($(P.X):$(P.Z))")
 Create an xz-point from a projective point with 3 coordinates.
 """
 function XZPoint{T<:Nemo.RingElem}(P::EllipticPoint{T})
-	return XZPoint(P.X, P.Z, P.curve)
+    return P.Z == 0 ? xinfinity(P.curve) : XZPoint(P.X, P.Z, P.curve)
 end
 
 
@@ -43,7 +43,7 @@ Get a normalized xz-point from any xz-point.
 function normalized{T}(P::XZPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
-        return XZPoint(Nemo.zero(K), 
+        return XZPoint(Nemo.one(K), 
                                Nemo.zero(K), 
                                P.curve)
     else
@@ -59,7 +59,7 @@ Normalizes a xz-point to a xz-point with Z-coordinate 1, in place.
 function normalize!{T<:Nemo.FieldElem}(P::XZPoint{T})
     K = Nemo.parent(P.X)
     if isinfinity(P)
-        P.X = Nemo.zero(K)
+        P.X = Nemo.one(K)
     else
         P.X = P.X // P.Z
         P.Z = Nemo.one(K)
@@ -99,8 +99,7 @@ Get the xz-point at infinity on a Montgomery curve.
 """
 function xinfinity(E::Montgomery)
     K = Nemo.parent(E.A)
-    zero = Nemo.zero(K)
-    return XZPoint(zero, zero, E)
+    return XZPoint(Nemo.one(K), Nemo.zero(K), E)
 end
 
 function XZzero(E::Montgomery)
@@ -116,9 +115,8 @@ function fixedtorsion(E::Montgomery)
     return XZPoint(Nemo.zero(K), Nemo.one(K), E)
 end
 
-#XZ points are valid by default
 function isvalid(P::XZPoint)
-	return true
+    return !(P.X == P.Z == 0)
 end
 
 
@@ -133,8 +131,8 @@ end
 Double any xz-point using the least possible field operations.
 """
 function xdouble{T}(P::XZPoint{T})
-	E = P.curve
-	R = base_ring(E)
+    E = P.curve
+    R = base_ring(E)
 
     v1 = P.X + P.Z
     v1 = v1^2
@@ -148,10 +146,6 @@ function xdouble{T}(P::XZPoint{T})
     v3 = v3 + v2
     
     Z2 = v1 * v3
-    
-    if Z2 == Nemo.zero(R)
-        X2 = Nemo.zero(R)
-    end
     
     return XZPoint(X2, Z2, E)
 end
@@ -174,7 +168,7 @@ function xadd{T}(P::XZPoint{T}, Q::XZPoint{T}, Minus::XZPoint{T})
     v3 = v3^2
     v4 = v1 - v2
     v4 = v4^2
-    
+
     Xplus = Minus.Z * v3
     Zplus = Minus.X * v4
    
@@ -185,7 +179,6 @@ end
 Montgomery ladder to compute scalar multiplications of generic xz-points, using the least possible field operations.
 """
 function xladder(k::Nemo.Integer, P::XZPoint)
-	normalize!(P)
     x0, x1 = P, xdouble(P)
     for b in bin(k)[2:end]
         if (b == '0')
@@ -198,27 +191,27 @@ function xladder(k::Nemo.Integer, P::XZPoint)
 end
 
 """
-Top-level function for scalar multiplications with xz-points on Montgomery curves
-"""
+    Top-level function for scalar multiplications with xz-points on Montgomery curves
+    """
 function *(k::Nemo.Integer, P::XZPoint)
-	E = P.curve
-	if k == 0
+    E = P.curve
+    if k == 0
+	return xinfinity(E)
+    elseif k<0
+	return times(-k, P)
+    else
+	if isinfinity(P)
+	    return xinfinity(E)
+	elseif isfixedtorsion(P)
+	    if k % 2 == 0
 		return xinfinity(E)
-	elseif k<0
-		return times(-k, P)
+	    else
+		return fixedtorsion(E)
+	    end
 	else
-		if isinfinity(P)
-			return xinfinity(E)
-		elseif isfixedtorsion(P)
-			if k % 2 == 0
-				return xinfinity(E)
-			else
-				return fixedtorsion(E)
-			end
-		else
-			return xladder(k, P)
-		end
+	    return xladder(k, P)
 	end
+    end
 end
 
 *(k::Nemo.fmpz, P::XZPoint) = BigInt(k) * P

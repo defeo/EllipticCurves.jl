@@ -4,7 +4,7 @@
 ######################################################################
 
 
-export Weierstrass, ShortWeierstrass, SeparatedWeierstrass, EllipticCurve
+export Weierstrass, ShortWeierstrass, SeparatedWeierstrass, EllipticCurve, from_j_invariant
 
 export curvetype, a_invariants, b_invariants, c_invariants, discriminant, j_invariant, equation, projective_equation, divisionpolynomial, coordinate_ring
 
@@ -74,6 +74,12 @@ end
 	
 function EllipticCurve{T}(a1::T, a2::T, a3::T, a4::T, a6::T)
 	return Weierstrass(a1, a2, a3, a4, a6)
+end
+
+function from_j_invariant{T}(j::T)
+    a = -j * (j - 1728)
+    b = -a * (j - 1728)
+    return ShortWeierstrass(3*a, 2*b)
 end
 
 ######################################################################

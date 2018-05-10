@@ -109,17 +109,10 @@ function base_extend{T<:FinFieldElem}(E::Montgomery{T}, K::FinField)
 	return Montgomery(convert(E.A, K), convert(E.B, K))
 end
 
-function card_over_extension(Card, p, r)
-	t = p + 1 - Card
-	A, X = PolynomialRing(Nemo.QQ, "X")
-	poly = X^2 - t * X + p
-	_, z = Nemo.NumberField(poly, "z")
-	poly(z) == 0 || throw(ArgumentError("NumberField does not work as planned"))
-	alpha = z
-	beta = -z + t
-	poly(beta) == 0 || throw(ArgumentError("NumberField does not work as planned"))
-	alpha * beta == p || throw(ArgumentError("NumberField does not work as planned"))
-	return numerator(trace(p^r + 1 - (alpha^r + beta^r)) // 2)
+function card_over_extension(Card::T, p::T, r::Unsigned) where T
+    t = p + 1 - Card
+    W = Base.power_by_squaring([[0, -p] [1, t]], r) * [2, t]
+    return p^r + 1 - W[1]
 end
 
 
