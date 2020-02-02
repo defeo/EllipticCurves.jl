@@ -12,18 +12,18 @@ export base_extend
 ######################################################################
 
 
-function frobeniustrace{T<:FinFieldElem}(E::EllipticCurve{T})
+function frobeniustrace(E::EllipticCurve{T}) where T<:FinFieldElem
 	#Call PARI
 	throw(NotImplementedError("Link to PARI to compute cardinalities of elliptic curves over finite fields"))
 end
 
-function cardinality{T<:FinFieldElem}(E::EllipticCurve{T})
-	t = trace(E)
+function cardinality(E::EllipticCurve{T}) where T<:FinFieldElem
+	t = frobeniustrace(E)
 	q = order(base_ring(E))
 	return q + 1 - t
 end
 
-function frobeniuspolynomial{T<:FinFieldElem}(E::EllipticCurve{T}, Card)
+function frobeniuspolynomial(E::EllipticCurve{T}, Card) where T<:FinFieldElem
 	q = order(base_ring(E))
 	t = q + 1 - Card
 	A, X = PolynomialRing(Nemo.ZZ, "X")
@@ -35,7 +35,7 @@ end
 # Random points on elliptic curves
 ######################################################################
 
-function rand{T<:FinFieldElem}(E::EllipticCurve{T})
+function rand(E::EllipticCurve{T}) where T<:FinFieldElem
 	K = base_ring(E)
 	A, Y = PolynomialRing(K, "Y")
 	x = rand(K)
@@ -49,7 +49,7 @@ function rand{T<:FinFieldElem}(E::EllipticCurve{T})
 	return Point(x, y, Nemo.one(K), E)
 end
 
-function randXZ{T<:FinFieldElem}(E::Montgomery{T})
+function randXZ(E::Montgomery{T}) where T<:FinFieldElem
 	P = rand(E)
 	return XZPoint(P)
 end
@@ -59,7 +59,7 @@ end
 # Torsion points
 ######################################################################
 
-function torsionpoint{T<:FinFieldElem}(E::EllipticCurve{T}, l, Card)
+function torsionpoint(E::EllipticCurve{T}, l, Card) where T<:FinFieldElem
 	cofactor = div(Card, l)
 	@assert cofactor * l == Card
 	P = rand(E)
@@ -72,7 +72,7 @@ function torsionpoint{T<:FinFieldElem}(E::EllipticCurve{T}, l, Card)
 	return Q
 end
 
-function torsionXZ{T<:FinFieldElem}(E::Montgomery{T}, l, Card)
+function torsionXZ(E::Montgomery{T}, l, Card) where T<:FinFieldElem
 	cofactor = div(Card, l)
 	@assert cofactor * l == Card
 	P = randXZ(E)
@@ -91,7 +91,7 @@ end
 ######################################################################
 
 
-function base_extend{T<:FinFieldElem}(E::AbstractWeierstrass{T}, K::FinField)
+function base_extend(E::AbstractWeierstrass{T}, K::FinField) where T<:FinFieldElem
 	CurveType = curvetype(E)
 	K1 = base_ring(E)
 	p1 = characteristic(K1)
@@ -101,7 +101,7 @@ function base_extend{T<:FinFieldElem}(E::AbstractWeierstrass{T}, K::FinField)
 	return CurveType(convert(a1, K), convert(a2, K), convert(a3, K), convert(a4, K), convert(a6, K))
 end
 
-function base_extend{T<:FinFieldElem}(E::Montgomery{T}, K::FinField)
+function base_extend(E::Montgomery{T}, K::FinField) where T<:FinFieldElem
 	K1 = base_ring(E)
 	p1 = characteristic(K1)
 	p = characteristic(K)
@@ -109,7 +109,7 @@ function base_extend{T<:FinFieldElem}(E::Montgomery{T}, K::FinField)
 	return Montgomery(convert(E.A, K), convert(E.B, K))
 end
 
-function card_over_extension(Card::T, p::T, r::Unsigned) where T
+function card_over_extension(Card::Integer, p::Integer, r::Integer) where T
     t = p + 1 - Card
     W = Base.power_by_squaring([[0, -p] [1, t]], r) * [2, t]
     return p^r + 1 - W[1]
@@ -123,7 +123,7 @@ end
 """
 Decide whether a given curve in short Weierstrass form has a Mongomery rational model.
 """
-function has_montgomery{T<:FinFieldElem}(E::ShortWeierstrass{T})
+function has_montgomery(E::ShortWeierstrass{T}) where T<:FinFieldElem
 	K = base_ring(E)
 	A, X = PolynomialRing(K, "X")
 	_, _, _, a, b = a_invariants(E)

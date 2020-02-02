@@ -12,7 +12,7 @@
 """
 Concrete type for (twisted) Edwards curves.
 """
-immutable Edwards{T<:Nemo.RingElem} <: EllipticCurve{T}
+struct Edwards{T<:Nemo.RingElem} <: EllipticCurve{T}
     a::T
     d::T
 end
@@ -26,7 +26,7 @@ end
 """
 Get a description of a Edwards curve.
 """
-function show{T}(io::IO, E::Edwards{T})
+function show(io::IO, E::Edwards{T}) where T
 	coef = (E.c)^2
     print(io, "Elliptic Curve in Edwards form $E.a x² + y² = (1 + $E.d x²y²)  over ")
     show(io, base_ring(E))

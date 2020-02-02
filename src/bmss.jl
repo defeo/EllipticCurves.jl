@@ -33,7 +33,7 @@ end
 """
 Get the polynomial associated with a power series.
 """
-function convert{T}(R::PolyRing{T}, F::AbsSeriesElem{T})
+function convert(R::PolyRing{T}, F::AbsSeriesElem{T}) where T
 	d = precision(F)
 	pol = zero(R)
 	for i = 0: d-1
@@ -46,7 +46,7 @@ end
 """
 Get the power series associated with a polynomial.
 """
-function convert{T}(S::SeriesRing{T}, P::PolyElem{T})
+function convert(S::SeriesRing{T}, P::PolyElem{T}) where T
 	d = min(degree(P), Nemo.max_precision(S)-1)
 	series = zero(S)
 	for i = 0:d
@@ -84,7 +84,7 @@ Compute the integral of an absolute capped power series, with constant term zero
 
 This does not change the maximum precision of the parent power series ring, however.
 """
-function integral{T<:FieldElem}(F::AbsSeriesElem{T})
+function integral(F::AbsSeriesElem{T}) where T<:FieldElem
 	return shift_left(map(F, (i, c)-> c // (i+1)), 1)
 end
 
@@ -92,7 +92,7 @@ end
 """
 Compose two absolute capped power series.
 """
-function compose{T}(F::AbsSeriesElem{T}, G::AbsSeriesElem{T})
+function compose(F::AbsSeriesElem{T}, G::AbsSeriesElem{T}) where T
 	R = parent(F)
 	K = base_ring(R)
 	A, _ = PolynomialRing(K, "x")
@@ -112,7 +112,7 @@ end
 Berlekamp-Massey algorithm to compute the rational reconstruction of a given polynomial of degree 2M - 1 (or 2M - 2) mod X^2M.
 """
 
-function berlekamp_massey{T<:FieldElem}(a::PolyElem{T})
+function berlekamp_massey(a::PolyElem{T}) where T<:FieldElem
     M = 1 + div(degree(a), 2)
     A = parent(a)
     x = gen(A)
@@ -156,8 +156,8 @@ abscissae of its kernel. unsafe_kernelpoly returns its square if the isogeny has
 This algorithm works only if the characteristic is zero or greater than 4*deg - 1.
 """
 
-function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
-	deg::Integer)
+function unsafe_kernelpoly(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
+	deg::Integer) where T<:FieldElem
 
 	K = base_ring(E1)
 	#We hope no one will use this with function fields...
@@ -203,7 +203,7 @@ function unsafe_kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::Abstrac
     return (N, D)
 end
 
-"""
+raw"""
     Compute a power-series solution to the differential equation used by
     the BMSS algorithm. The differential equation is
 
@@ -240,7 +240,7 @@ end
        k_i(x) = \frac{P(T_i, x)} {{T_i'}^2 G \sqrt{G}}.
 """
 
-function _BMSS_diffeq{T<:FieldElem}(G::AbsSeriesElem{T}, H::AbsSeriesElem{T}, prec::Integer)
+function _BMSS_diffeq(G::AbsSeriesElem{T}, H::AbsSeriesElem{T}, prec::Integer) where T<:FieldElem
     
     # The power series ring
     R = parent(G)
@@ -300,8 +300,8 @@ end
 Sanity checks
 """
 
-function kernelpoly{T<:FieldElem}(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
-	deg::Integer)
+function kernelpoly(E1::AbstractWeierstrass{T}, E2::AbstractWeierstrass{T},
+	deg::Integer) where T<:FieldElem
 	N, D = unsafe_kernelpoly(E1, E2, deg)
 
 	evenpart = Nemo.gcd(divisionpolynomial(E1, 2), D)

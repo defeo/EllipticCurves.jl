@@ -12,7 +12,7 @@ export Montgomery
 """
 Concrete type for (twisted) Montgomery curves.
 """
-immutable Montgomery{T<:Nemo.RingElem} <: EllipticCurve{T}
+struct Montgomery{T<:Nemo.RingElem} <: EllipticCurve{T}
     A::T
     B::T
 end
@@ -24,7 +24,7 @@ end
 """
 Get a description of a Montgomery curve.
 """
-function show{T}(io::IO, E::Montgomery{T})
+function show(io::IO, E::Montgomery{T}) where T
     print(io, "Elliptic Curve  $(E.B) y² = x³ + $(E.A) x² + x  over ")
     show(io, base_ring(E))
 end
@@ -33,7 +33,7 @@ end
 Get the j-invariant of a Montgomery Curve.
 """
 
-function j_invariant{T<:Nemo.FieldElem}(E::Montgomery{T})
+function j_invariant(E::Montgomery{T}) where T<:Nemo.FieldElem
 	K = base_ring(E)
 	zero = Nemo.zero(K)
 	return j_invariant(Weierstrass(zero, E.A, zero, Nemo.one(K), zero))

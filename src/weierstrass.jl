@@ -16,7 +16,7 @@ export curvetype, a_invariants, b_invariants, c_invariants, discriminant, j_inva
 """
 Concrete type for elliptic curves in long Weierstrass form over a ring.
 """
-immutable Weierstrass{T} <: AbstractWeierstrass{T}
+struct Weierstrass{T} <: AbstractWeierstrass{T}
     a1::T
     a2::T
     a3::T
@@ -28,13 +28,13 @@ end
 """
 Concrete types for elliptic curves in short Weierstrass form over a ring.
 """
-immutable ShortWeierstrass{T} <: AbstractWeierstrass{T}
+struct ShortWeierstrass{T} <: AbstractWeierstrass{T}
     a::T
     b::T
 end
 
 
-immutable SeparatedWeierstrass{T} <: AbstractWeierstrass{T}
+struct SeparatedWeierstrass{T} <: AbstractWeierstrass{T}
 	a2::T
 	a4::T
 	a6::T
@@ -50,12 +50,12 @@ curvetype(E::Weierstrass) = Weierstrass
 # Calling with six arguments
 ######################################################################
 
-function ShortWeierstrass{T}(a1::T, a2::T, a3::T, a4::T, a6::T)
+function ShortWeierstrass(a1::T, a2::T, a3::T, a4::T, a6::T) where T
 	a1 == 0 && a2 == 0 && a3 == 0 || throw(ArgumentError("Tried to call ShortWeierstrass with nonzero coefficients"))
 	return ShortWeierstrass(a4, a6)
 end
 
-function SeparatedWeierstrass{T}(a1::T, a2::T, a3::T, a4::T, a6::T)
+function SeparatedWeierstrass(a1::T, a2::T, a3::T, a4::T, a6::T) where T
 	a1 == 0 && a3 == 0 || throw(ArgumentError("Tried to call SeparatedWeierstrass with nonzero coefficients"))
 	return SeparatedWeierstrass(a2, a4, a6)
 end
@@ -64,19 +64,19 @@ end
 # Calling with the 'EllipticCurve' constructor
 ######################################################################
 
-function EllipticCurve{T}(a4::T, a6::T)
+function EllipticCurve(a4::T, a6::T) where T
 	return ShortWeierstrass(a4, a6)
 end
 
-function EllipticCurve{T}(a2::T, a4::T, a6::T)
+function EllipticCurve(a2::T, a4::T, a6::T) where T
 	return SeparatedWeierstrass(a2, a4, a6)
 end
 	
-function EllipticCurve{T}(a1::T, a2::T, a3::T, a4::T, a6::T)
+function EllipticCurve(a1::T, a2::T, a3::T, a4::T, a6::T) where T
 	return Weierstrass(a1, a2, a3, a4, a6)
 end
 
-function from_j_invariant{T}(j::T)
+function from_j_invariant(j::T) where T
     a = -j * (j - 1728)
     b = -a * (j - 1728)
     return ShortWeierstrass(3*a, 2*b)
@@ -222,13 +222,13 @@ end
 """
 Internal function to compute the 2-division polynomial of an elliptic curve in Weierstrass form.
 """
-_2divpoly{T}(E::AbstractWeierstrass{T}, x::PolyElem{T}, D::Dict{Int, PolyElem{T}}) = _divpoly(E, -1, x, D)
+_2divpoly(E::AbstractWeierstrass{T}, x::PolyElem{T}, D::Dict{Int, PolyElem{T}}) where T = _divpoly(E, -1, x, D)
 
 
 """
 Internal function to compute the mth division polynomial of an elliptic curve in Weierstrass form, using the well-known induction formulas. If the index is even, *the usual factor 2*y is dropped*.
 """
-function _divpoly{T}(E::AbstractWeierstrass{T}, m::Integer, x::PolyElem{T}, D::Dict{Int, PolyElem{T}})
+function _divpoly(E::AbstractWeierstrass{T}, m::Integer, x::PolyElem{T}, D::Dict{Int, PolyElem{T}}) where T
 	b2, b4, b6, b8 = b_invariants(E)
 	R = parent(x)
 	if m in keys(D)
@@ -289,7 +289,7 @@ If m is even, you may specify an additional parameter two_torsion:
 * 2 (default) adds extra roots at points of two-torsion in order to get a univariate polynomial.
 """
 
-function divisionpolynomial{T}(E::AbstractWeierstrass{T}, m::Nemo.Integer, two_torsion::Integer = 2)
+function divisionpolynomial(E::AbstractWeierstrass{T}, m::Nemo.Integer, two_torsion::Integer = 2) where T
 	m <= -3 && throw(ArgumentError("m must be positive or -1 or -2"))
 	
 	if m<=0

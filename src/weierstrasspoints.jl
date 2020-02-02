@@ -40,7 +40,7 @@ end
 """
 Get the sum of two normalized projective points on the same Weierstrass curve, assuming they are not equal and not inverse of each other.
 """
-function _addgeneric{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
+function _addgeneric(P::EllipticPoint{T}, Q::EllipticPoint{T}) where T<:Nemo.FieldElem
     E = P.curve
 	a1, a2, a3, _, _ = a_invariants(E)
 	
@@ -66,7 +66,7 @@ end
 """
 Get the sum of two normalized projective points on the same Weierstrass curve, assuming they have equal x-coordinate.
 """
-function _addequalx{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
+function _addequalx(P::EllipticPoint{T}, Q::EllipticPoint{T}) where T<:Nemo.FieldElem
     E = P.curve
 	a1, a2, a3, a4, a6 = a_invariants(E)
 	
@@ -108,7 +108,7 @@ end
 Get the sum of two projective points on the same Weierstrass curve.
 
 """
-function +{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
+function +(P::EllipticPoint{T}, Q::EllipticPoint{T}) where T<:Nemo.FieldElem
     P = normalized(P)
     Q = normalized(Q)
 	xp, _, _ = coordinates(P)
@@ -124,7 +124,7 @@ function +{T<:Nemo.FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
     end
 end
 
-function -{T<:FieldElem}(P::EllipticPoint{T}, Q::EllipticPoint{T})
+function -(P::EllipticPoint{T}, Q::EllipticPoint{T}) where T<:FieldElem
 	return P + (-Q)
 end
 
@@ -132,7 +132,7 @@ end
 Get a scalar multiple of a point on a Weierstrass curve.
 """
 
-function *(k::Nemo.Integer, P::EllipticPoint)
+function *(k::Integer, P::EllipticPoint)
 	E = P.curve
 	P = normalized(P)
 	if k == 0
@@ -148,20 +148,20 @@ function *(k::Nemo.Integer, P::EllipticPoint)
 	end
 end
 
-function *(k::Nemo.fmpz, P::EllipticPoint)
-	return BigInt(k) * P
-end
+# function *(k::Integer, P::EllipticPoint)
+# 	return k * P
+# end
 
-function _ladder(m::Nemo.Integer, P::EllipticPoint)
-	p0 = P
-	for b in bin(m)[2:end]
-        if (b == '0')
-        	p0 = _double(p0)
+function _ladder(m::Integer, P::EllipticPoint)
+    p0 = P
+    for b in Iterators.drop(Iterators.reverse(digits(Int8, m, base=2)), 1)
+        if (b == 0)
+            p0 = _double(p0)
         else
-        	p0 = P + _double(p0)
+            p0 = P + _double(p0)
         end
     end
-	return p0
+    return p0
 end
 
 ######################################################################
@@ -182,7 +182,7 @@ end
 
 #This function is only to be used with distinct points on the same short Weierstrass curve
 #xdet is x2 z1 - x1 z2, and ydet is y2 z1 - y1 z2
-function _projective_add_neq{T}(P::EllipticPoint{T}, Q::EllipticPoint{T}, xdet::T, ydet::T)
+function _projective_add_neq(P::EllipticPoint{T}, Q::EllipticPoint{T}, xdet::T, ydet::T) where T
 	x1, y1, z1 = coordinates(P)
 	x2, y2, z2 = coordinates(Q)
 	xdet2 = xdet^2
@@ -199,7 +199,7 @@ function _projective_add_neq{T}(P::EllipticPoint{T}, Q::EllipticPoint{T}, xdet::
 end
 
 #This function is only to be used with a point on a short Weierstrass curve
-function _projective_dbl{T}(P::EllipticPoint{T})
+function _projective_dbl(P::EllipticPoint{T}) where T
 	x, y, z = coordinates(P)
 	_, _, _, a, b = a_invariants(base_curve(P))
 	factor = a * z^2 + 3 * x^2
@@ -217,7 +217,7 @@ end
 
 #This function is only to be used with two points on the same short Weierstrass curve
 #Compute xdet and ydet, if they are both zero go to _projective_dbl
-function projective_add{T}(P::EllipticPoint{T}, Q::EllipticPoint{T})
+function projective_add(P::EllipticPoint{T}, Q::EllipticPoint{T}) where T
 	x1, y1, z1 = coordinates(P)
 	x2, y2, z2 = coordinates(Q)
 	xdet = x2 * z1 - x1 * z2
@@ -231,14 +231,14 @@ end
 
 #Here we assume v is a positive integer and P lives on a short Weierstrass curve
 function _projective_scalar_mul(P::EllipticPoint, v::Integer)
-	P0 = P
-	for b in bin(v)[2:end]
+    P0 = P
+    for b in Iterators.drop(Iterators.reverse(digits(Int8, v, base=2)), 1)
         P0 = _projective_dbl(P0)
-        if (b == '1')
-        	P0 = projective_add(P0, P)
+        if (b == 1)
+            P0 = projective_add(P0, P)
         end
     end
-	return P0
+    return P0
 end
 
 function projective_scalar_mul(P::EllipticPoint, v::Integer)

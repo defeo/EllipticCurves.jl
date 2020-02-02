@@ -5,13 +5,13 @@
 
 export EllipticPoint, Point
 
-export coordinates, base_curve, isinfinity, normalized, samefields
+export coordinates, base_curve, isinfinity, normalize!, normalized, samefields
 
 """
 Concrete type for projective points on elliptic curves given by a projective planar equation.
 """
 
-type EllipticPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
+mutable struct EllipticPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
 	X::T
 	Y::T
 	Z::T
@@ -26,12 +26,12 @@ base_curve(P::EllipticPoint) = P.curve
 # Calling with the 'Point' constructor
 ######################################################################
 
-function Point{T}(x::T, y::T, curve::EllipticCurve{T})
+function Point(x::T, y::T, curve::EllipticCurve{T}) where T
 	R = base_ring(x)
 	return EllipticPoint(x, y, R(1), curve)
 end
 
-function Point{T}(X::T, Y::T, Z::T, curve::EllipticCurve{T})
+function Point(X::T, Y::T, Z::T, curve::EllipticCurve{T}) where T
 	return EllipticPoint(X, Y, Z, curve)
 end
 
@@ -90,7 +90,7 @@ end
 """
 Normalize a projective point in place.
 """
-function normalize!{T<:Nemo.FieldElem}(P::EllipticPoint{T})
+function normalize!(P::EllipticPoint{T}) where T<:Nemo.FieldElem
     K = base_ring(P)
     if isinfinity(P)
         P.X = zero(K)

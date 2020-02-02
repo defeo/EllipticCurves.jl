@@ -13,7 +13,7 @@ export XZPoint, xadd, xdouble, xinfinity, fixedtorsion, isfixedtorsion, XZzero
 """
 Concrete type for xz-points on Montgomery curves.
 """
-type XZPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
+mutable struct XZPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
     X::T
     Z::T
     curve::Montgomery{T}
@@ -32,7 +32,7 @@ show(io::IO, P::XZPoint) = print(io, "($(P.X):$(P.Z))")
 """
 Create an xz-point from a projective point with 3 coordinates.
 """
-function XZPoint{T<:Nemo.RingElem}(P::EllipticPoint{T})
+function XZPoint(P::EllipticPoint{T}) where T<:Nemo.RingElem
     return P.Z == 0 ? xinfinity(P.curve) : XZPoint(P.X, P.Z, P.curve)
 end
 
@@ -40,7 +40,7 @@ end
 """
 Get a normalized xz-point from any xz-point.
 """
-function normalized{T}(P::XZPoint{T})
+function normalized(P::XZPoint{T}) where T
     K = Nemo.parent(P.X)
     if isinfinity(P)
         return XZPoint(Nemo.one(K), 
@@ -56,7 +56,7 @@ end
 """
 Normalizes a xz-point to a xz-point with Z-coordinate 1, in place.
 """
-function normalize!{T<:Nemo.FieldElem}(P::XZPoint{T})
+function normalize!(P::XZPoint{T}) where T<:Nemo.FieldElem
     K = Nemo.parent(P.X)
     if isinfinity(P)
         P.X = Nemo.one(K)
@@ -130,7 +130,7 @@ end
 """
 Double any xz-point using the least possible field operations.
 """
-function xdouble{T}(P::XZPoint{T})
+function xdouble(P::XZPoint{T}) where T
     E = P.curve
     R = base_ring(E)
 
@@ -155,7 +155,7 @@ Differential addition on xz-points using the least possible field operations.
 
 This function assumes the difference is not (0:0) or (0:1).
 """
-function xadd{T}(P::XZPoint{T}, Q::XZPoint{T}, Minus::XZPoint{T})
+function xadd(P::XZPoint{T}, Q::XZPoint{T}, Minus::XZPoint{T}) where T
     v0 = P.X + P.Z
     v1 = Q.X - Q.Z
     v1 = v1 * v0
@@ -180,8 +180,8 @@ Montgomery ladder to compute scalar multiplications of generic xz-points, using 
 """
 function xladder(k::Nemo.Integer, P::XZPoint)
     x0, x1 = P, xdouble(P)
-    for b in bin(k)[2:end]
-        if (b == '0')
+    for b in Iterators.drop(Iterators.reverse(digits(Int8, k, base=2)), 1)
+        if (b == 0)
         	x0, x1 = xdouble(x0), xadd(x0, x1, P)
         else
         	x0, x1 = xadd(x0, x1, P), xdouble(x1)

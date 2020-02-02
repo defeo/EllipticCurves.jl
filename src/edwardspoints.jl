@@ -12,7 +12,7 @@ export EdwardsPoint, ExtendedEdwardsPoint, neutral, isneutral, extended_neutral
 """
 Concrete type for classical projective points on Edwards curves.
 """
-type EdwardsPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
+mutable struct EdwardsPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
     X::T
 	Y::T
     Z::T
@@ -22,7 +22,7 @@ end
 """
 Concrete type for extended projective points on Edwards curves.
 """
-type ExtendedEdwardsPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
+mutable struct ExtendedEdwardsPoint{T<:Nemo.RingElem} <: ProjectivePoint{T}
     X::T
 	Y::T
     Z::T

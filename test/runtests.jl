@@ -2,7 +2,7 @@ using Nemo
 using EllipticCurves
 using ClassPolynomials
 
-using Base.Test
+using Test
 
 ######################################################################
 # Testing tools.jl
@@ -273,7 +273,7 @@ P = rand(E)
 @test 260 * P == zero(E)
 P2 = randXZ(E2)
 @test isvalid(P2)
-@test 210 * P2 == XZzero(E2)
+@test 240 * P2 == XZzero(E2)
 
 #Torsion points
 

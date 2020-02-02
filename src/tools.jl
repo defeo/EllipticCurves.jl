@@ -20,15 +20,6 @@ function (P::Frac)(args...)
 	return n(args...) // d(args...)
 end
 
-function numerator(P::Frac)
-	return P.num
-end
-
-function denominator(P::Frac)
-	return P.den
-end
-
-
 
 ######################################################################
 # Useful functions for finite fields
@@ -54,7 +45,7 @@ end
 
 #Computing roots of polynomials over finite fields
 
-function roots{T<:FinFieldElem}(f::PolyElem{T})
+function roots(f::PolyElem{T}) where T<:FinFieldElem
 	fac = Nemo.factor(f)
 	res = Dict{T, Int}()
 	for index in fac
@@ -66,8 +57,8 @@ function roots{T<:FinFieldElem}(f::PolyElem{T})
 	res = collect(res)
 	return res
 end
-	
-function any_root{T<:FinFieldElem}(f::PolyElem{T})
+
+function any_root(f::PolyElem{T}) where T<:FinFieldElem
 	r = roots(f)
 	if any(_->true, r) #tests whether r contains any element
 		y0, _ = r[1]
@@ -103,7 +94,7 @@ end
 """
 When used with polynomials, convert each coefficient.
 """
-function convert{T<:FinFieldElem}(P::PolyElem{T}, K::FinField)
+function convert(P::PolyElem{T}, K::FinField) where T<:FinFieldElem
 	A, Y = PolynomialRing(K, "Y")
 	poly = Nemo.zero(A)
 	for i = 0:degree(P)
