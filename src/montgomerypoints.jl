@@ -116,7 +116,7 @@ function fixedtorsion(E::Montgomery)
 end
 
 function isvalid(P::XZPoint)
-    return !(P.X == P.Z == 0)
+    return !(P.X == P.Z == 0) && issquare( P.curve.B * ( P.X^3 + P.curve.A*P.X^2*P.Z + P.Z^3 ) * P.Z )[1]
 end
 
 

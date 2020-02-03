@@ -126,7 +126,7 @@ E = Montgomery(QQ(7), QQ(1))
 
 P1 = Point(QQ(1), QQ(3), QQ(1), E)
 P0 = Point(QQ(0), QQ(0), QQ(1), E)
-@test isvalid(P1) & isvalid(P2)
+@test isvalid(P1) & isvalid(P0)
 
 xP1 = XZPoint(P1)
 xP0 = XZPoint(P0)
