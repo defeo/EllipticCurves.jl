@@ -198,7 +198,7 @@ function *(k::Nemo.Integer, P::XZPoint)
     if k == 0
 	return xinfinity(E)
     elseif k<0
-	return times(-k, P)
+	return (-k) * P
     else
 	if isinfinity(P)
 	    return xinfinity(E)
